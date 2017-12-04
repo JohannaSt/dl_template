@@ -1,0 +1,6 @@
+RAW_DATA_DIR: "./mnist"
+DATA_DIR: "./data/case1"
+RESULTS_DIR: "./results/case1"
+TRAIN_FILES: "./data/case1/train.txt"
+VAL_FILES: "./data/case1/val.txt"
+TEST_FILES: "./data/case1/test.txt"
