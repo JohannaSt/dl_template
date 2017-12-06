@@ -1,0 +1,21 @@
+#Raw data
+  here the raw data is in the vascular data repository
+  there is the images.txt, truths.txt, groups.txt and paths.txt files
+
+  *the problem comes down to that it is difficult to make assumptions
+  about raw data, so currently it can be anything which makes it hard to
+  write reusable code.
+
+  *The trick would be to map out different cases, e.g. csv file, db, ...
+
+  *For SV we have a number of "cases" where each case has "files" associated
+  with it and each case is processed independently to produce the processed
+  data
+    -single large CSV is really just 1 case with 1 file
+    -could abstract this as list of case config files
+      --each case config file has the relevant file paths in it
+      --then write a function process_case(case_file,global_config)
+    -Note that this is different from how I currently have it, separate config
+    per case helps to keep cases independent from each other
+
+*What is this process? Abstraction/identifying the elements

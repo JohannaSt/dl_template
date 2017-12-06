@@ -1,0 +1,5 @@
+GROUPS: /home/marsdenlab/datasets/vascular_data/normal1/normal1_stump/normal1_stump_groups
+IMAGE: /home/marsdenlab/datasets/vascular_data/normal1/normal1-image.mha
+NAME: normal1
+PATHS: /home/marsdenlab/datasets/vascular_data/normal1/normal1_stump/normal1_stump.paths
+SEGMENTATION: /home/marsdenlab/datasets/vascular_data/normal1/normal1_stump/normal1_stump.mha

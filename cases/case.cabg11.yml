@@ -1,0 +1,5 @@
+GROUPS: /home/marsdenlab/datasets/vascular_data/cabg11/cabg11_all/cabg11_all_groups
+IMAGE: /home/marsdenlab/datasets/vascular_data/cabg11/cabg11-image.mha
+NAME: cabg11
+PATHS: /home/marsdenlab/datasets/vascular_data/cabg11/cabg11_all/cabg11_all.paths
+SEGMENTATION: /home/marsdenlab/datasets/vascular_data/cabg11/cabg11_all/cabg11_all.mha

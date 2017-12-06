@@ -1,4 +1,4 @@
-DATA_DIR: "/media/marsdenlab/Data2/datasets/DeepLofting/files"
+DATA_DIR: "/media/marsdenlab/Data2/datasets/DeepLofting/files_loft"
 RESULTS_DIR: "./results/case1"
 TRAIN_FILES: "./data/case1/train.txt"
 VAL_FILES: "./data/case1/val.txt"
@@ -8,11 +8,8 @@ SPACING: 0.035
 DIMS: 192
 NUM_CONTOUR_POINTS: 30
 PATH_START: 2
-LOFT: false
+LOFT: true
 LOCAL_MAX_NORM: true
-ROTATE: true
-RANDOM_CROP: true
-PATH_PERTURB: 5
 
 VAL_IMAGES:
   - OSMSC0110

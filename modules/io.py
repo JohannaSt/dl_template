@@ -7,3 +7,7 @@ def load_yaml(fn):
             return yaml.load(file_)
         except RuntimeError as e:
             print "failed to load yaml fille {}, {}\n".format(fn,e)
+
+def save_yaml(fn, data):
+    with open(fn,'w') as file_:
+        yaml.dump(data,file_, default_flow_style=False)

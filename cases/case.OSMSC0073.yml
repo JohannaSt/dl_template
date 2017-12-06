@@ -1,0 +1,5 @@
+GROUPS: /home/marsdenlab/datasets/vascular_data/OSMSC0073/0073_0001/0073_0001_groups-cm
+IMAGE: /home/marsdenlab/datasets/vascular_data/OSMSC0073/OSMSC0073-cm.mha
+NAME: OSMSC0073
+PATHS: /home/marsdenlab/datasets/vascular_data/OSMSC0073/0073_0001/0073_0001-cm.paths
+SEGMENTATION: /home/marsdenlab/datasets/vascular_data/OSMSC0073/0073_0001/0073_0001-cm.mha
