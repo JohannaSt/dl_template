@@ -29,6 +29,8 @@ def random_rotate(image_pair):
     return image_pair
 
 class FileReaderThread(threading.Thread):
+    """Note this class is a thread, so it runs in a separate thread parallel
+    to the main program"""
     def __init__(self, q, file_list, reader_fn, group=None, target=None, name="producer",
                  args=(), kwargs=None, verbose=None):
         super(FileReaderThread,self).__init__()
