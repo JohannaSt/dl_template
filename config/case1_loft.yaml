@@ -1,8 +1,13 @@
 DATA_DIR: "/media/marsdenlab/Data2/datasets/DeepLofting/files_loft"
-RESULTS_DIR: "./results/case1"
-TRAIN_FILES: "./data/case1/train.txt"
-VAL_FILES: "./data/case1/val.txt"
-TEST_FILES: "./data/case1/test.txt"
+FILE_LIST: "/media/marsdenlab/Data2/datasets/DeepLofting/files_loft/files.txt"
+
+RESULTS_DIR: "./results/case1_loft"
+TRAIN_FILE_LIST: "./results/train.txt"
+VAL_FILE_LIST: "./results/val.txt"
+TEST_FILE_LIST: "./results/test.txt"
+
+MODEL_DIR: "./results/case1_loft/model"
+MODEL_NAME: "I2I"
 
 SPACING: 0.035
 DIMS: 192
@@ -10,8 +15,11 @@ NUM_CONTOUR_POINTS: 30
 PATH_START: 2
 LOFT: true
 LOCAL_MAX_NORM: true
+ROTATE: true
+RANDOM_CROP: true
+PATH_PERTURB: 5
 
-VAL_IMAGES:
+VAL_PATTERNS:
   - OSMSC0110
   - OSMSC0140
   - OSMSC0170
@@ -19,7 +27,7 @@ VAL_IMAGES:
   - OSMSC0082
   - OSMSC0177
 
-TEST_IMAGES:
+TEST_PATTERNS:
   - OSMSC0006
   - OSMSC0080
   - OSMSC0083
@@ -35,7 +43,7 @@ TEST_IMAGES:
   - OSMSC0179
   - cabg11
 
-TRAIN_IMAGES:
+TRAIN_PATTERNS:
   - normal1
   - normal4
   - OSMSC0001

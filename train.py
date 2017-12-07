@@ -5,7 +5,7 @@ from modules import train_utils
 import os
 import Queue
 import numpy as np
-
+import matplotlib.pyplot as plt
 import tensorflow as tf
 
 import argparse
@@ -30,11 +30,11 @@ except:
 #########################
 # Get train/val files
 #########################
-files_ = open(case_config['DATA_DIR']+'/files.txt','r').readlines()
-files_ = [f.replace('\n','') for f in files_]
+train_files = open(case_config['TRAIN_FILE_LIST'],'r').readlines()
+train_files = [f.replace('\n','') for f in train_files]
 
-train_files = [f for f in files_ if any(k in f for k in case_config['TRAIN_IMAGES'])]
-val_files   = [f for f in files_ if any(k in f for k in case_config['VAL_IMAGES'])]
+val_files = open(case_config['VAL_FILE_LIST'],'r').readlines()
+val_files = [f.replace('\n','') for f in val_files]
 
 ##########################
 # build augmenter
@@ -48,11 +48,11 @@ def preprocessor(image_pair):
     """ images is a [x,y] pair """
     if case_config['LOCAL_MAX_NORM']:
         x = image_pair[0]
-        x = (1.0*x-np.amin(x))/(np.amax(x)-np.amin(x))
+        x = (1.0*x-np.amin(x))/(np.amax(x)-np.amin(x)+1e-5)
         image_pair[0] = x
         y = image_pair[1]
-        y = (1.0*y-np.amin(y))/(np.amax(y)-np.amin(y))
-        image_pair[1] = y.astype(int)
+        y = (1.0*y-np.amin(y))/(np.amax(y)-np.amin(y)+1e-5)
+        image_pair[1] = y
 
     if case_config['ROTATE']:
         image_pair = train_utils.random_rotate(image_pair)
@@ -69,17 +69,15 @@ def batch_processor(im_list):
 
     y = np.stack([pair[1] for pair in im_list])
     y = y[:,:,:,np.newaxis]
-
+    y = np.round(y)
     return x,y
 
 ##########################
 # Setup queues and threads
 ##########################
-Q        = Queue.Queue(global_config['QUEUE_SIZE'])
-producer = train_utils.FileReaderThread(Q,train_files, reader)
-producer.setDaemon(True)
-consumer = train_utils.BatchGetter(Q,preprocessor,batch_processor,global_config['BATCH_SIZE'])
-producer.start()
+consumer = train_utils.BatchGetter(preprocessor,batch_processor,global_config['BATCH_SIZE'],
+queue_size=global_config['QUEUE_SIZE'], file_list=train_files,
+reader_fn=reader, num_threads=global_config['NUM_THREADS'])
 
 ###############################
 # Set up variable learning rate
@@ -93,7 +91,6 @@ learning_rate = tf.train.piecewise_constant(global_step, boundaries, values)
 ##########################
 # Get Network Parameters
 ##########################
-
 CROP_DIMS   = global_config['CROP_DIMS']
 C           = 1
 NUM_FILTERS = global_config['NUM_FILTERS']
@@ -110,29 +107,8 @@ leaky_relu = tf.contrib.keras.layers.LeakyReLU(LEAK)
 x = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
 y = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
 
-Nbatch = tf.shape(x)[0]
-
-#I2INet
-yclass,yhat,o3,o4 = tf_util.I2INet(x,nfilters=NUM_FILTERS,
-    activation=leaky_relu,init=INIT)
-
 #I2INetFC
-y_vec = tf.reshape(yhat, (Nbatch,CROP_DIMS**2))
-
-sp = tf_util.fullyConnected(y_vec,CROP_DIMS,leaky_relu, std=INIT, scope='sp1')
-sp = tf_util.fullyConnected(y_vec,CROP_DIMS**2,leaky_relu, std=INIT, scope='sp2')
-sp = tf.reshape(sp, (Nbatch,CROP_DIMS,CROP_DIMS,1))
-
-y_sp = tf_util.conv2D(sp, nfilters=NUM_FILTERS,
-    activation=leaky_relu,init=INIT, scope='sp3')
-y_sp_1 = tf_util.conv2D(y_sp, nfilters=NUM_FILTERS,
-    activation=leaky_relu, init=INIT,scope='sp4')
-y_sp_2 = tf_util.conv2D(y_sp_1, nfilters=NUM_FILTERS,
-    activation=leaky_relu, init=INIT,scope='sp5')
-
-yhat = tf_util.conv2D(y_sp_2, nfilters=1, activation=tf.identity, init=INIT,scope='sp6')
-
-yclass = tf.sigmoid(yhat)
+yclass,yhat = tf_util.I2INetFC(x, nfilters=NUM_FILTERS, activation=leaky_relu)
 
 #Loss
 loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=yhat,labels=y))
@@ -155,7 +131,9 @@ saver = tf.train.Saver()
 TRAIN_STEPS = global_config['TRAIN_STEPS']
 PRINT_STEP  = global_config['PRINT_STEP']
 batch_dir   = case_config['RESULTS_DIR']+'/batch'
+model_dir   = case_config['MODEL_DIR']
 sv.mkdir(batch_dir)
+sv.mkdir(model_dir)
 
 if case_config.has_key('PRETRAINED_MODEL_PATH'):
     saver.restore(sess,case_config['PRETRAINED_MODEL_PATH'])
@@ -166,6 +144,9 @@ for i in range(TRAIN_STEPS+1):
     global_step = global_step+1
     xb,yb = consumer.get_batch()
 
+    if np.sum(np.isnan(xb)) > 0: continue
+    if np.sum(np.isnan(yb)) > 0: continue
+
     l,_ = sess.run([loss,train],{x:xb,y:yb})
 
     if i%PRINT_STEP == 0:
@@ -174,9 +155,39 @@ for i in range(TRAIN_STEPS+1):
         xv = xv[np.newaxis,:,:,np.newaxis]
         yv = yv[np.newaxis,:,:,np.newaxis]
 
-        lval,ypred = sess.run([loss,yclass],{x:xv,y:yv})
+        lval = sess.run(loss,{x:xv,y:yv})
+        ypred,yb,xb = sess.run([yclass,y,x],{x:xb,y:yb})
 
         train_hist.append(l)
         val_hist.append(lval)
 
         print "{}: train_loss={}, val_loss={}".format(i,l,lval)
+
+        saver.save(sess,model_dir+'/{}'.format(case_config['MODEL_NAME']))
+
+        for j in range(global_config["BATCH_SIZE"]):
+
+            plt.figure()
+            plt.imshow(xb[j,:,:,0],cmap='gray')
+            plt.colorbar()
+            plt.savefig('{}/{}.{}.x.png'.format(batch_dir,i,j))
+            plt.close()
+
+            plt.figure()
+            plt.imshow(yb[j,:,:,0],cmap='gray')
+            plt.colorbar()
+            plt.savefig('{}/{}.{}.y.png'.format(batch_dir,i,j))
+            plt.close()
+
+            plt.figure()
+            plt.imshow(ypred[j,:,:,0],cmap='gray')
+            plt.colorbar()
+            plt.savefig('{}/{}.{}.ypred.png'.format(batch_dir,i,j))
+            plt.close()
+
+        plt.figure()
+        plt.plot(train_hist,color='r',label='train')
+        plt.plot(val_hist,color='g',label='val')
+        plt.legend()
+        plt.savefig('{}/{}.loss.png'.format(batch_dir,i))
+        plt.close()

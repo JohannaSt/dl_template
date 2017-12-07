@@ -48,11 +48,22 @@ class FileReaderThread(threading.Thread):
         return
 
 class BatchGetter(object):
-    def __init__(self, q, preprocessor_fn, batch_processor_fn, num_batch):
-        self.q               = q
-        self.preprocessor_fn = preprocessor_fn
+    def __init__(self, preprocessor_fn, batch_processor_fn, num_batch,queue_size,file_list,
+    reader_fn,num_threads=1):
+        self.q                  = Queue.Queue(queue_size)
+        self.preprocessor_fn    = preprocessor_fn
         self.batch_processor_fn = batch_processor_fn
-        self.num_batch       = num_batch
+        self.num_batch          = num_batch
+        self.file_list          = file_list
+        self.reader_fn          = reader_fn
+        self.num_threads        = num_threads
+
+        self.readers = []
+        for i in range(self.num_threads):
+            t = FileReaderThread(self.q,self.file_list,self.reader_fn,name='producer'+str(i))
+            t.setDaemon(True)
+            t.start()
+            self.readers.append(t)
 
     def get_batch(self):
         items = []

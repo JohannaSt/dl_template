@@ -163,9 +163,36 @@ def I2INet(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filters=
     o3 = I2INetUpsampleBlock(a2,o4,n1=8*nfilters,n2=4*nfilters,init=init,activation=activation, scope='ublock2')
     o2 = I2INetUpsampleBlock(a1,o3,n1=4*nfilters,n2=nfilters,init=init,activation=activation, scope='ublock3')
 
-    out = conv2D(o2,nfilters=output_filters,activation=tf.identity)
+    out = conv2D(o2,nfilters=output_filters,activation=tf.identity,init=init)
     out_class = tf.sigmoid(out)
     return out_class,out,o3,o4
+
+def I2INetFC(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filters=1):
+    Nbatch = tf.shape(x)[0]
+    CROP_DIMS = x.get_shape().as_list()[1]
+
+    yclass,yhat,o3,o4 = I2INet(x,nfilters=nfilters,
+        activation=activation,init=init)
+
+    #I2INetFC
+    y_vec = tf.reshape(yhat, (Nbatch,CROP_DIMS**2))
+
+    sp = fullyConnected(y_vec,CROP_DIMS,activation, std=init, scope='sp1')
+    sp = fullyConnected(y_vec,CROP_DIMS**2,activation, std=init, scope='sp2')
+    sp = tf.reshape(sp, (Nbatch,CROP_DIMS,CROP_DIMS,1))
+
+    y_sp = conv2D(sp, nfilters=nfilters,
+        activation=activation,init='xavier', scope='sp3')
+    y_sp_1 = conv2D(y_sp, nfilters=nfilters,
+        activation=activation, init='xavier',scope='sp4')
+    y_sp_2 = conv2D(y_sp_1, nfilters=nfilters,
+        activation=activation, init='xavier',scope='sp5')
+
+    yhat = conv2D(y_sp_2, nfilters=1, activation=tf.identity, init=init,scope='sp6')
+
+    yclass = tf.sigmoid(yhat)
+
+    return yclass, yhat
 
 def multitaskNet(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filters=1,
     hidden_size=300,num_contour_points=20):
