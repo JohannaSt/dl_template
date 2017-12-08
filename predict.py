@@ -10,6 +10,7 @@ import tensorflow as tf
 from medpy.metric.binary import hd, assd
 import csv
 import argparse
+import scipy
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
@@ -109,7 +110,7 @@ for f in tqdm(files):
     xb = (1.0*xb-np.amin(xb))/(np.amax(xb)-np.amin(xb)+1e-5)
     xb = xb[np.newaxis,:,:,np.newaxis]
 
-    yb = np.load(f+'.Y.npy')
+    yb = np.load(f+'.Yc.npy')
     yb = yb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
     yb = (1.0*yb-np.amin(yb))/(np.amax(yb)-np.amin(yb)+1e-5)
     if np.sum(yb) < 1:
@@ -125,12 +126,18 @@ for f in tqdm(files):
         yp_thresh[ID/2,ID/2] = 1
     err_dict = calculate_error(yp,yb)
 
-    image_name = f.split('/')[-2]
-    path_name  = f.split('/')[-1]
+    image_name = f.split('/')[-3]
+    path_name  = f.split('/')[-2]
+    point_number  = f.split('/')[-1]
 
-    ofn = OUTPUT_DIR+"/{}.{}".format(image_name,path_name)
+    ofn = OUTPUT_DIR+"/{}.{}.{}".format(image_name,path_name,point_number)
     ofn_csv = ofn+'.csv'
     ofn_np  = ofn+'.ypred.npy'
+
+    scipy.misc.imsave(ofn+'.x.png',xb[0,:,:,0])
+    scipy.misc.imsave(ofn+'.ypred.png',yp)
+    scipy.misc.imsave(ofn+'.y.png',yb)
+    scipy.misc.imsave(ofn+'.ypred_thresh.png',yp_thresh)
 
     write_csv(ofn_csv,err_dict)
     np.save(ofn_np,yp)
