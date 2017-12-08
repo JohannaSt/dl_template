@@ -84,8 +84,8 @@ reader_fn=reader, num_threads=global_config['NUM_THREADS'])
 ###############################
 LEARNING_RATE = global_config["LEARNING_RATE"]
 global_step = tf.Variable(0, trainable=False)
-boundaries = [5000, 10000]
-values = [LEARNING_RATE, LEARNING_RATE/10, LEARNING_RATE/100]
+boundaries = [5000, 10000, 15000]
+values = [LEARNING_RATE, LEARNING_RATE/10, LEARNING_RATE/100, LEARNING_RATE/1000]
 learning_rate = tf.train.piecewise_constant(global_step, boundaries, values)
 
 ##########################
