@@ -114,6 +114,7 @@ for f in tqdm(files):
     yb = (1.0*yb-np.amin(yb))/(np.amax(yb)-np.amin(yb)+1e-5)
     if np.sum(yb) < 1:
         yb[ID/2,ID/2] = 1
+    #calculate prediction
     yp = sess.run(yclass,{x:xb})
     yp = yp[0,:,:,0]
 
