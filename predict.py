@@ -96,7 +96,8 @@ def calculate_error(ypred,y):
     FN = np.sum((1-ypred)*y)
     HD = hd(y,ypred)
     ASSD = assd(y,ypred)
-    return {"TP":TP, "FP":FP, "TN":TN, "FN":FN, "HD":HD, "ASSD":ASSD}
+    DICE = (1.0*TP)/(TP+FN)
+    return {"TP":TP, "FP":FP, "TN":TN, "FN":FN, "HD":HD, "ASSD":ASSD, "DICE":DICE}
 
 def write_csv(filename,dict):
     with open(filename,'w') as f:
@@ -123,7 +124,7 @@ for f in tqdm(files):
     yp_thresh[yp_thresh <= TH] = 0
     if np.sum(yp_thresh) < 1:
         yp_thresh[ID/2,ID/2] = 1
-    err_dict = calculate_error(yp,yb)
+    err_dict = calculate_error(yp_thresh.astype(int),np.round(yb).astype(int))
 
     image_name = f.split('/')[-3]
     path_name  = f.split('/')[-2]
