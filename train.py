@@ -2,11 +2,16 @@ from modules import io
 from modules import layers as tf_util
 from modules import vascular_data as sv
 from modules import train_utils
+
 import os
+
 import Queue
+
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+
+import importlib
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -39,7 +44,26 @@ val_files = [f.replace('\n','') for f in val_files]
 ##########################
 # import model related functions
 ##########################
+experiment = importlib.import_module(case_config['EXPERIMENT_FILE'])
 
+model  = experiment.Model(global_config, case_config)
+
+reader = experiment.read_file
+
+def make_preprocessor(global_config, case_config):
+    
+    def preprocess(Tuple):
+        Tuple = experiment.normalize(Tuple, case_config)
+        Tuple = experiment.augment(Tuple, global_config, case_config)
+        return Tuple
+    
+    return preprocess
+
+preprocessor    = make_preprocessor(global_config, case_config)
+
+batch_processor = experiment.tuple_to_batch
+
+logger          = experiment.log
 
 ##########################
 # Setup queues and threads
@@ -47,31 +71,6 @@ val_files = [f.replace('\n','') for f in val_files]
 consumer = train_utils.BatchGetter(preprocessor,batch_processor,global_config['BATCH_SIZE'],
 queue_size=global_config['QUEUE_SIZE'], file_list=train_files,
 reader_fn=reader, num_threads=global_config['NUM_THREADS'])
-
-###############################
-# Set up variable learning rate
-###############################
-LEARNING_RATE = global_config["LEARNING_RATE"]
-global_step = tf.Variable(0, trainable=False)
-boundaries = [5000, 10000, 15000]
-values = [LEARNING_RATE, LEARNING_RATE/10, LEARNING_RATE/100, LEARNING_RATE/1000]
-learning_rate = tf.train.piecewise_constant(global_step, boundaries, values)
-
-##########################
-# Get Network Parameters
-##########################
-CROP_DIMS   = global_config['CROP_DIMS']
-C           = 1
-NUM_FILTERS = global_config['NUM_FILTERS']
-LEAK        = global_config['LEAK']
-BATCH_SIZE  = global_config['BATCH_SIZE']
-INIT        = global_config['INIT']
-LAMBDA      = global_config['L2_REG']
-
-##########################
-# Build Tensorflow Graph
-##########################
-#Import lib stuff
 
 ##############################
 # Train
@@ -84,17 +83,25 @@ sv.mkdir(batch_dir)
 sv.mkdir(model_dir)
 
 if case_config.has_key('PRETRAINED_MODEL_PATH'):
-    saver.restore(sess,case_config['PRETRAINED_MODEL_PATH'])
+   model.load(model_path=case_config['PRETRAINED_MODEL_PATH'])
 
 train_hist = []
 val_hist   = []
+print "Starting train loop"
 for i in range(TRAIN_STEPS+1):
 
-    xb,yb = consumer.get_batch()
+    train_tuple = consumer.get_batch()
     #train step
-
+    model.train_step(train_tuple)
+    
     if i%PRINT_STEP == 0:
         fval = np.random.choice(val_files)
-        xv,yv = preprocessor(reader(fval))
+        val_tuple = preprocessor(reader(fval))
+        val_tuple = batch_processor(val_tuple)
         #log stuff
         
+        l_train, l_val, _ = logger(train_tuple, val_tuple, model, case_config, i)
+        
+        print "{}: train loss = {}, val loss = {}".format(i,l_train, l_val)
+        
+        model.save()

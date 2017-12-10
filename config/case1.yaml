@@ -1,6 +1,8 @@
 DATA_DIR: "/media/marsdenlab/Data2/datasets/DeepLofting/files"
 FILE_LIST: "/media/marsdenlab/Data2/datasets/DeepLofting/files/files.txt"
 
+EXPERIMENT_FILE: "modules.I2INet"
+
 RESULTS_DIR: "./results/case1"
 TRAIN_FILE_LIST: "./results/train.txt"
 VAL_FILE_LIST: "./results/val.txt"
@@ -11,6 +13,7 @@ MODEL_NAME: "I2I"
 
 SPACING: 0.035
 DIMS: 192
+NUM_CHANNELS: 1
 NUM_CONTOUR_POINTS: 30
 PATH_START: 2
 LOFT: false

@@ -7,10 +7,11 @@ import Queue
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from medpy.metric.binary import hd, assd
 import csv
 import argparse
 import scipy
+import importlib
+
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
@@ -54,50 +55,27 @@ else:
     raise RuntimeError("must specify --val or --test as argument")
 
 ##########################
-# Get Network Parameters
+# Import experiment
 ##########################
-CROP_DIMS   = global_config['CROP_DIMS']
-C           = 1
-NUM_FILTERS = global_config['NUM_FILTERS']
-LEAK        = global_config['LEAK']
-BATCH_SIZE  = global_config['BATCH_SIZE']
-INIT        = global_config['INIT']
-LAMBDA      = global_config['L2_REG']
+experiment = importlib.import_module(case_config['EXPERIMENT_FILE'])
 
-##########################
-# Build Tensorflow Graph
-##########################
-leaky_relu = tf.contrib.keras.layers.LeakyReLU(LEAK)
+model  = experiment.Model(global_config, case_config)
 
-x = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
-y = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
+model.load()
 
-#I2INetFC
-yclass,yhat = tf_util.I2INetFC(x, nfilters=NUM_FILTERS, activation=leaky_relu)
+reader = experiment.read_file
 
-sess = tf.Session()
+preprocessor    = experiment.normalize
 
-saver = tf.train.Saver()
+batch_processor = experiment.tuple_to_batch
 
-saver.restore(sess,case_config['MODEL_DIR']+'/'+case_config['MODEL_NAME'])
-
+evaluator       = experiment.evaluate
 ##########################
 # Calculate Error
 ##########################
 CD = global_config['CROP_DIMS']
 ID = global_config['IMAGE_DIMS']
 TH = global_config['THRESHOLD']
-
-def calculate_error(ypred,y):
-    """assumes ypred and y are thresholded"""
-    TP = np.sum(ypred*y)
-    FP = np.sum(ypred*(1-y))
-    TN = np.sum((1-ypred)*(1-y))
-    FN = np.sum((1-ypred)*y)
-    HD = hd(y,ypred)
-    ASSD = assd(y,ypred)
-    DICE = (1.0*TP)/(TP+FN)
-    return {"TP":TP, "FP":FP, "TN":TN, "FN":FN, "HD":HD, "ASSD":ASSD, "DICE":DICE}
 
 def write_csv(filename,dict):
     with open(filename,'w') as f:
@@ -106,25 +84,16 @@ def write_csv(filename,dict):
         w.writerow(dict)
 
 for f in tqdm(files):
-    xb = np.load(f+'.X.npy')
+    xb,yb = reader(f)
+    
     xb = xb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
-    xb = (1.0*xb-np.amin(xb))/(np.amax(xb)-np.amin(xb)+1e-5)
-    xb = xb[np.newaxis,:,:,np.newaxis]
-
-    yb = np.load(f+'.Yc.npy')
     yb = yb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
-    yb = (1.0*yb-np.amin(yb))/(np.amax(yb)-np.amin(yb)+1e-5)
-    if np.sum(yb) < 1:
-        yb[ID/2,ID/2] = 1
-    yp = sess.run(yclass,{x:xb})
-    yp = yp[0,:,:,0]
-
-    yp_thresh = yp.copy()
-    yp_thresh[yp_thresh > TH] = 1
-    yp_thresh[yp_thresh <= TH] = 0
-    if np.sum(yp_thresh) < 1:
-        yp_thresh[ID/2,ID/2] = 1
-    err_dict = calculate_error(yp_thresh.astype(int),np.round(yb).astype(int))
+    
+    T  = preprocessor((xb,yb), case_config)
+    T  = batch_processor(T)
+    
+    yp       = model.predict(T[0])[0,:,:,0]
+    err_dict, yp_thresh = evaluator(T, model, global_config)
 
     image_name = f.split('/')[-3]
     path_name  = f.split('/')[-2]
@@ -134,7 +103,7 @@ for f in tqdm(files):
     ofn_csv = ofn+'.csv'
     ofn_np  = ofn+'.ypred.npy'
 
-    scipy.misc.imsave(ofn+'.x.png',xb[0,:,:,0])
+    scipy.misc.imsave(ofn+'.x.png',xb)
     scipy.misc.imsave(ofn+'.ypred.png',yp)
     scipy.misc.imsave(ofn+'.y.png',yb)
     scipy.misc.imsave(ofn+'.ypred_thresh.png',yp_thresh)
