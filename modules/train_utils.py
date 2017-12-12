@@ -15,18 +15,21 @@ def random_crop(image_pair,max_offset,crop_dims):
     startsx = W/2-crop_dims/2+starts[0]
     startsy = H/2-crop_dims/2+starts[1]
 
+    return_images = []
     for i,im in enumerate(image_pair):
 
-        image_pair[i] = im[startsx:startsx+crop_dims,startsy:startsy+crop_dims]
+        return_images.append(
+            im[startsx:startsx+crop_dims,startsy:startsy+crop_dims])
 
-    return image_pair
+    return tuple(return_images)
 
 def random_rotate(image_pair):
     angle = np.random.randint(360)
+    return_images = []
     for i,im in enumerate(image_pair):
-        image_pair[i] = rotate(im,angle,axes=(1,0),reshape=False)
+        return_images.append(rotate(im,angle,axes=(1,0),reshape=False))
 
-    return image_pair
+    return tuple(return_images)
 
 class FileReaderThread(threading.Thread):
     """Note this class is a thread, so it runs in a separate thread parallel

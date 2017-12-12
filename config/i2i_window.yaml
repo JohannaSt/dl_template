@@ -3,7 +3,7 @@ FILE_LIST: "/media/marsdenlab/Data2/datasets/DeepLofting/files/files.txt"
 
 EXPERIMENT_FILE: "experiments.I2INet"
 
-RESULTS_DIR: "./results/case1"
+RESULTS_DIR: "./results/i2i_window"
 TRAIN_FILE_LIST: "./results/case1/train.txt"
 VAL_FILE_LIST: "./results/case1/val.txt"
 TEST_FILE_LIST: "./results/case1/test.txt"
@@ -17,7 +17,7 @@ NUM_CHANNELS: 1
 NUM_CONTOUR_POINTS: 30
 PATH_START: 2
 LOFT: false
-NORMALIZE: "LOCAL_MAX_NORM"
+NORMALIZE: "WINDOW"
 ROTATE: true
 RANDOM_CROP: true
 PATH_PERTURB: 5

@@ -6,11 +6,32 @@ import re
 import scipy
 from scipy.interpolate import UnivariateSpline
 from vtk import vtkImageExport
+from vtk.util import numpy_support
 import os
 
 def mkdir(fn):
     if not os.path.exists(os.path.abspath(fn)):
         os.mkdir(os.path.abspath(fn))
+
+def window_image(image,center,window):
+    start_ = center-float(window)/2
+    end_   = center+float(window)/2
+    x = image.copy()
+
+    x = (1.0*x)/window + (0.5-float(center)/window)
+    x[image <= start_] = 0.0
+    x[image > end_] = 1.0
+    return x
+
+def vtk_image_to_numpy(im):
+
+    H,W,D = im.GetDimensions()
+    sc = im.GetPointData().GetScalars()
+    a = numpy_support.vtk_to_numpy(sc)
+    a = a.reshape(H, W, D)
+
+    assert a.shape==im.GetDimensions()
+    return a
 
 def normalizeContour(c,p,t,tx):
     """

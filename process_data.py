@@ -48,6 +48,17 @@ for i, case_fn in enumerate(cases):
     path_dict    = sv.parsePathFile(case_dict['PATHS'])
     group_dir    = case_dict['GROUPS']
 
+    im_np  = sv.vtk_image_to_numpy(image)
+    seg_np = sv.vtk_image_to_numpy(segmentation)
+    blood_np = im_np[seg_np>0.1]
+
+    stats = {"MEAN":np.mean(im_np), "STD":np.std(im_np), "MAX":np.amax(im_np),
+    "MIN":np.amin(im_np),
+    "BLOOD_MEAN":np.mean(blood_np),
+    "BLOOD_STD":np.std(blood_np),
+    "BLOOD_MAX":np.amax(blood_np),
+    "BLOOD_MIN":np.amin(blood_np)}
+
     for grp_id in path_dict.keys():
         path_info      = path_dict[grp_id]
         path_points    = path_info['points']
@@ -132,4 +143,7 @@ for i, case_fn in enumerate(cases):
                     files.write('{}/{}\n'.format(group_data_dir,i))
                 except:
                     print "failed to save {}/{}".format(group_data_dir,i)
+
+        io.write_csv(image_dir+'/'+'image_stats.csv',stats)
+
 files.close()

@@ -2,11 +2,16 @@ from modules import io
 from modules import layers as tf_util
 from modules import vascular_data as sv
 from modules import train_utils
+
 import os
+
 import Queue
+
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
+
+import importlib
 
 import argparse
 parser = argparse.ArgumentParser()
@@ -37,40 +42,28 @@ val_files = open(case_config['VAL_FILE_LIST'],'r').readlines()
 val_files = [f.replace('\n','') for f in val_files]
 
 ##########################
-# build augmenter
+# import model related functions
 ##########################
-def reader(filename):
-    x = np.load(filename+'.X.npy')
-    y = np.load(filename+'.Yc.npy')
-    return [x,y]
+experiment = importlib.import_module(case_config['EXPERIMENT_FILE'])
 
-def preprocessor(image_pair):
-    """ images is a [x,y] pair """
-    if case_config['LOCAL_MAX_NORM']:
-        x = image_pair[0]
-        x = (1.0*x-np.amin(x))/(np.amax(x)-np.amin(x)+1e-5)
-        image_pair[0] = x
-        y = image_pair[1]
-        y = (1.0*y-np.amin(y))/(np.amax(y)-np.amin(y)+1e-5)
-        image_pair[1] = y
+model  = experiment.Model(global_config, case_config)
 
-    if case_config['ROTATE']:
-        image_pair = train_utils.random_rotate(image_pair)
+reader = experiment.read_file
 
-    if case_config['RANDOM_CROP']:
-        image_pair = train_utils.random_crop(image_pair,case_config['PATH_PERTURB'],
-            global_config['CROP_DIMS'])
+def make_preprocessor(global_config, case_config):
+    
+    def preprocess(Tuple):
+        Tuple = experiment.normalize(Tuple, case_config)
+        Tuple = experiment.augment(Tuple, global_config, case_config)
+        return Tuple
+    
+    return preprocess
 
-    return image_pair
+preprocessor    = make_preprocessor(global_config, case_config)
 
-def batch_processor(im_list):
-    x = np.stack([pair[0] for pair in im_list])
-    x = x[:,:,:,np.newaxis]
+batch_processor = experiment.tuple_to_batch
 
-    y = np.stack([pair[1] for pair in im_list])
-    y = y[:,:,:,np.newaxis]
-    y = np.round(y)
-    return x,y
+logger          = experiment.log
 
 ##########################
 # Setup queues and threads
@@ -78,52 +71,6 @@ def batch_processor(im_list):
 consumer = train_utils.BatchGetter(preprocessor,batch_processor,global_config['BATCH_SIZE'],
 queue_size=global_config['QUEUE_SIZE'], file_list=train_files,
 reader_fn=reader, num_threads=global_config['NUM_THREADS'])
-
-###############################
-# Set up variable learning rate
-###############################
-LEARNING_RATE = global_config["LEARNING_RATE"]
-global_step = tf.Variable(0, trainable=False)
-boundaries = [5000, 10000, 15000]
-values = [LEARNING_RATE, LEARNING_RATE/10, LEARNING_RATE/100, LEARNING_RATE/1000]
-learning_rate = tf.train.piecewise_constant(global_step, boundaries, values)
-
-##########################
-# Get Network Parameters
-##########################
-CROP_DIMS   = global_config['CROP_DIMS']
-C           = 1
-NUM_FILTERS = global_config['NUM_FILTERS']
-LEAK        = global_config['LEAK']
-BATCH_SIZE  = global_config['BATCH_SIZE']
-INIT        = global_config['INIT']
-LAMBDA      = global_config['L2_REG']
-
-##########################
-# Build Tensorflow Graph
-##########################
-leaky_relu = tf.contrib.keras.layers.LeakyReLU(LEAK)
-
-x = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
-y = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
-
-#I2INetFC
-yclass,yhat = tf_util.I2INetFC(x, nfilters=NUM_FILTERS, activation=leaky_relu)
-
-#Loss
-loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=yhat,labels=y))
-
-loss = loss + tf_util.l2_reg(LAMBDA)
-
-opt = tf.train.AdamOptimizer(learning_rate)
-train = opt.minimize(loss)
-
-sess = tf.Session()
-sess.run(tf.global_variables_initializer())
-
-print yclass
-
-saver = tf.train.Saver()
 
 ##############################
 # Train
@@ -136,58 +83,25 @@ sv.mkdir(batch_dir)
 sv.mkdir(model_dir)
 
 if case_config.has_key('PRETRAINED_MODEL_PATH'):
-    saver.restore(sess,case_config['PRETRAINED_MODEL_PATH'])
+   model.load(model_path=case_config['PRETRAINED_MODEL_PATH'])
 
 train_hist = []
 val_hist   = []
+print "Starting train loop"
 for i in range(TRAIN_STEPS+1):
-    global_step = global_step+1
-    xb,yb = consumer.get_batch()
 
-    if np.sum(np.isnan(xb)) > 0: continue
-    if np.sum(np.isnan(yb)) > 0: continue
-
-    l,_ = sess.run([loss,train],{x:xb,y:yb})
-
+    train_tuple = consumer.get_batch()
+    #train step
+    model.train_step(train_tuple)
+    
     if i%PRINT_STEP == 0:
         fval = np.random.choice(val_files)
-        xv,yv = preprocessor(reader(fval))
-        xv = xv[np.newaxis,:,:,np.newaxis]
-        yv = yv[np.newaxis,:,:,np.newaxis]
-
-        lval = sess.run(loss,{x:xv,y:yv})
-        ypred,yb,xb = sess.run([yclass,y,x],{x:xb,y:yb})
-
-        train_hist.append(l)
-        val_hist.append(lval)
-
-        print "{}: train_loss={}, val_loss={}".format(i,l,lval)
-
-        saver.save(sess,model_dir+'/{}'.format(case_config['MODEL_NAME']))
-
-        for j in range(global_config["BATCH_SIZE"]):
-
-            plt.figure()
-            plt.imshow(xb[j,:,:,0],cmap='gray')
-            plt.colorbar()
-            plt.savefig('{}/{}.{}.x.png'.format(batch_dir,i,j))
-            plt.close()
-
-            plt.figure()
-            plt.imshow(yb[j,:,:,0],cmap='gray')
-            plt.colorbar()
-            plt.savefig('{}/{}.{}.y.png'.format(batch_dir,i,j))
-            plt.close()
-
-            plt.figure()
-            plt.imshow(ypred[j,:,:,0],cmap='gray')
-            plt.colorbar()
-            plt.savefig('{}/{}.{}.ypred.png'.format(batch_dir,i,j))
-            plt.close()
-
-        plt.figure()
-        plt.plot(train_hist,color='r',label='train')
-        plt.plot(val_hist,color='g',label='val')
-        plt.legend()
-        plt.savefig('{}/{}.loss.png'.format(batch_dir,i))
-        plt.close()
+        val_tuple = preprocessor(reader(fval))
+        val_tuple = batch_processor(val_tuple)
+        #log stuff
+        
+        l_train, l_val, _ = logger(train_tuple, val_tuple, model, case_config, i)
+        
+        print "{}: train loss = {}, val loss = {}".format(i,l_train, l_val)
+        
+        model.save()

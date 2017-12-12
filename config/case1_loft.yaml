@@ -1,10 +1,17 @@
 DATA_DIR: "/home/marsdenlab/Documents/project2/files"
 FILE_LIST: "/home/marsdenlab/Documents/project2/files/files.txt"
 
+<<<<<<< HEAD
 RESULTS_DIR: "./results/case_test1_loft"
 TRAIN_FILE_LIST: "./results/train.txt"
 VAL_FILE_LIST: "./results/val.txt"
 TEST_FILE_LIST: "./results/test.txt"
+=======
+RESULTS_DIR: "./results/case1_loft"
+TRAIN_FILE_LIST: "./results/case1_loft/train.txt"
+VAL_FILE_LIST: "./results/case1_loft/val.txt"
+TEST_FILE_LIST: "./results/case1_loft/est.txt"
+>>>>>>> c0e19966401c383c3792d9d0f827ae1609cc14ab
 
 MODEL_DIR: "./results/case_test1_loft/model"
 MODEL_NAME: "I2I"
