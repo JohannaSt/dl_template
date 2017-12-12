@@ -110,7 +110,7 @@ for f in tqdm(files):
     xb = (1.0*xb-np.amin(xb))/(np.amax(xb)-np.amin(xb)+1e-5)
     xb = xb[np.newaxis,:,:,np.newaxis]
 
-    yb = np.load(f+'.Yc.npy')
+    yb = np.load(f+'.Yc.npy') #ground truth
     yb = yb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
     yb = (1.0*yb-np.amin(yb))/(np.amax(yb)-np.amin(yb)+1e-5)
     if np.sum(yb) < 1:

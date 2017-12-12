@@ -1,12 +1,12 @@
-DATA_DIR: "/media/marsdenlab/Data2/datasets/DeepLofting/files_loft"
-FILE_LIST: "/media/marsdenlab/Data2/datasets/DeepLofting/files_loft/files.txt"
+DATA_DIR: "/home/marsdenlab/Documents/project2/files"
+FILE_LIST: "/home/marsdenlab/Documents/project2/files/files.txt"
 
-RESULTS_DIR: "./results/case1_loft"
+RESULTS_DIR: "./results/case_test1_loft"
 TRAIN_FILE_LIST: "./results/train.txt"
 VAL_FILE_LIST: "./results/val.txt"
 TEST_FILE_LIST: "./results/test.txt"
 
-MODEL_DIR: "./results/case1_loft/model"
+MODEL_DIR: "./results/case_test1_loft/model"
 MODEL_NAME: "I2I"
 
 SPACING: 0.035
@@ -17,6 +17,7 @@ LOFT: true
 LOCAL_MAX_NORM: true
 ROTATE: true
 RANDOM_CROP: true
+#maximal offset of random image crop center-->in train_utils.py: random_crop()
 PATH_PERTURB: 5
 
 VAL_PATTERNS:
