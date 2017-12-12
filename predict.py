@@ -11,6 +11,7 @@ import csv
 import argparse
 import scipy
 import importlib
+import pandas as pd
 
 from tqdm import tqdm
 
@@ -77,18 +78,24 @@ CD = global_config['CROP_DIMS']
 ID = global_config['IMAGE_DIMS']
 TH = global_config['THRESHOLD']
 
+df = pd.DataFrame()
+
 for f in tqdm(files):
-    xb,yb = reader(f)
+    Tuple = reader(f)
+    xb = Tuple[0]
+    yb = Tuple[1]
+    yc = Tuple[2]
 
     xb = xb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
     yb = yb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
+    yc = yc[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
 
     T  = preprocessor((xb,yb), case_config)
     T  = batch_processor(T)
 
     yp       = model.predict(T[0])[0,:,:,0]
-    err_dict, yp_thresh = evaluator(T, model, global_config)
-    err_dict['GROUND_TRUTH'] = f
+    err_dict, yp_thresh = evaluator((T[0],T[1],yc), model, global_config)
+    err_dict['GROUND_TRUTH'] = f+".Y.npy"
 
     image_name = f.split('/')[-3]
     path_name  = f.split('/')[-2]
@@ -100,10 +107,20 @@ for f in tqdm(files):
 
     err_dict['PREDICTION'] = ofn_np
 
+    analysis_name = case_config_file.split('/')[-1]
+
+    err_dict['ANALYSIS_NAME'] = analysis_name
+    err_dict['IMAGE'] = image_name
+    err_dict['PATH'] = path_name
+    err_dict['PATH_POINT'] = point_number
+    
     scipy.misc.imsave(ofn+'.x.png',xb)
     scipy.misc.imsave(ofn+'.ypred.png',yp)
     scipy.misc.imsave(ofn+'.y.png',yb)
     scipy.misc.imsave(ofn+'.ypred_thresh.png',yp_thresh)
 
+    df = df.append(err_dict,ignore_index=True)
     io.write_csv(ofn_csv,err_dict)
     np.save(ofn_np,yp)
+
+df.to_csv(OUTPUT_DIR+'/dataframe.csv')
