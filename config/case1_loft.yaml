@@ -2,9 +2,9 @@ DATA_DIR: "/media/marsdenlab/Data2/datasets/DeepLofting/files_loft"
 FILE_LIST: "/media/marsdenlab/Data2/datasets/DeepLofting/files_loft/files.txt"
 
 RESULTS_DIR: "./results/case1_loft"
-TRAIN_FILE_LIST: "./results/train.txt"
-VAL_FILE_LIST: "./results/val.txt"
-TEST_FILE_LIST: "./results/test.txt"
+TRAIN_FILE_LIST: "./results/case1_loft/train.txt"
+VAL_FILE_LIST: "./results/case1_loft/val.txt"
+TEST_FILE_LIST: "./results/case1_loft/est.txt"
 
 MODEL_DIR: "./results/case1_loft/model"
 MODEL_NAME: "I2I"

@@ -77,23 +77,18 @@ CD = global_config['CROP_DIMS']
 ID = global_config['IMAGE_DIMS']
 TH = global_config['THRESHOLD']
 
-def write_csv(filename,dict):
-    with open(filename,'w') as f:
-        w = csv.DictWriter(f,dict.keys())
-        w.writeheader()
-        w.writerow(dict)
-
 for f in tqdm(files):
     xb,yb = reader(f)
-    
+
     xb = xb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
     yb = yb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
-    
+
     T  = preprocessor((xb,yb), case_config)
     T  = batch_processor(T)
-    
+
     yp       = model.predict(T[0])[0,:,:,0]
     err_dict, yp_thresh = evaluator(T, model, global_config)
+    err_dict['GROUND_TRUTH'] = f
 
     image_name = f.split('/')[-3]
     path_name  = f.split('/')[-2]
@@ -103,10 +98,12 @@ for f in tqdm(files):
     ofn_csv = ofn+'.csv'
     ofn_np  = ofn+'.ypred.npy'
 
+    err_dict['PREDICTION'] = ofn_np
+
     scipy.misc.imsave(ofn+'.x.png',xb)
     scipy.misc.imsave(ofn+'.ypred.png',yp)
     scipy.misc.imsave(ofn+'.y.png',yb)
     scipy.misc.imsave(ofn+'.ypred_thresh.png',yp_thresh)
 
-    write_csv(ofn_csv,err_dict)
+    io.write_csv(ofn_csv,err_dict)
     np.save(ofn_np,yp)

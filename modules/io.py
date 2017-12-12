@@ -1,4 +1,5 @@
 import yaml
+import csv
 
 def load_yaml(fn):
     """loads a yaml file into a dict"""
@@ -11,3 +12,18 @@ def load_yaml(fn):
 def save_yaml(fn, data):
     with open(fn,'w') as file_:
         yaml.dump(data,file_, default_flow_style=False)
+
+def write_csv(filename,dict):
+    with open(filename,'w') as f:
+        w = csv.DictWriter(f,dict.keys())
+        w.writeheader()
+        w.writerow(dict)
+
+def read_csv(filename):
+    with open(filename,'r') as f:
+        w = csv.DictReader(f)
+        d = [row for row in w]
+        if len(d)==1:
+            return d[0]
+        else:
+            return d

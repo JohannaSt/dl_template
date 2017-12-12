@@ -171,11 +171,11 @@ def I2INetFC(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filter
     Nbatch = tf.shape(x)[0]
     CROP_DIMS = x.get_shape().as_list()[1]
 
-    yclass,yhat,o3,o4 = I2INet(x,nfilters=nfilters,
+    yclass_,yhat_,o3,o4 = I2INet(x,nfilters=nfilters,
         activation=activation,init=init)
 
     #I2INetFC
-    y_vec = tf.reshape(yhat, (Nbatch,CROP_DIMS**2))
+    y_vec = tf.reshape(yclass_, (Nbatch,CROP_DIMS**2))
 
     sp = fullyConnected(y_vec,CROP_DIMS,activation, std=init, scope='sp1')
     sp = fullyConnected(y_vec,CROP_DIMS**2,activation, std=init, scope='sp2')
@@ -192,7 +192,7 @@ def I2INetFC(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filter
 
     yclass = tf.sigmoid(yhat)
 
-    return yclass, yhat
+    return yclass, yhat, yclass_, yhat_
 
 def multitaskNet(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filters=1,
     hidden_size=300,num_contour_points=20):
