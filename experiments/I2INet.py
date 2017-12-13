@@ -148,7 +148,7 @@ def augment(Tuple, global_config, case_config):
         Tuple_ = train_utils.random_crop(Tuple_,case_config['PATH_PERTURB'],
             global_config['CROP_DIMS'])
 
-    x,y = Tuple
+    x,y = Tuple_
 
     return (x,y)
 
