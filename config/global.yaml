@@ -1,5 +1,5 @@
 CASES_DIR: "./cases"
-CASES_PREFIX: "/home/marsdenlab/Documents/project2/files"
+CASES_PREFIX: "/home/johanna/files"
   #"/home/marsdenlab/datasets/vascular_data"
 
 LEAK: 0.2
@@ -7,8 +7,8 @@ CROP_DIMS: 128
 IMAGE_DIMS: 192
 BATCH_SIZE: 4
 LEARNING_RATE: 0.0001
-TRAIN_STEPS: 40000
-PRINT_STEP: 200
+TRAIN_STEPS: 400
+PRINT_STEP: 100
 INIT: 0.04
 L2_REG: 0.0001
 NUM_FILTERS: 32

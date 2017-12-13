@@ -1,17 +1,14 @@
-DATA_DIR: "/home/marsdenlab/Documents/project2/files"
-FILE_LIST: "/home/marsdenlab/Documents/project2/files/files.txt"
+DATA_DIR: "/home/johanna/files"
+FILE_LIST: "/home/johanna/files/files.txt"
 
-<<<<<<< HEAD
-RESULTS_DIR: "./results/case_test1_loft"
-TRAIN_FILE_LIST: "./results/train.txt"
-VAL_FILE_LIST: "./results/val.txt"
-TEST_FILE_LIST: "./results/test.txt"
-=======
+
 RESULTS_DIR: "./results/case1_loft"
 TRAIN_FILE_LIST: "./results/case1_loft/train.txt"
 VAL_FILE_LIST: "./results/case1_loft/val.txt"
-TEST_FILE_LIST: "./results/case1_loft/est.txt"
->>>>>>> c0e19966401c383c3792d9d0f827ae1609cc14ab
+TEST_FILE_LIST: "./results/case1_loft/test.txt"
+EXPERIMENT_FILE: "I2INet"
+PRETRAINED_MODEL_PATH: "media/marsdenlab/Data1/johanna/models/i2i_CT/i2i_CT.data-00000-of-00001"
+THRESHOLD: 0.3
 
 MODEL_DIR: "./results/case_test1_loft/model"
 MODEL_NAME: "I2I"
@@ -24,6 +21,7 @@ LOFT: true
 LOCAL_MAX_NORM: true
 ROTATE: true
 RANDOM_CROP: true
+NUM_CHANNELS: 1
 #maximal offset of random image crop center-->in train_utils.py: random_crop()
 PATH_PERTURB: 5
 

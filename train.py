@@ -44,19 +44,19 @@ val_files = [f.replace('\n','') for f in val_files]
 ##########################
 # import model related functions
 ##########################
-experiment = importlib.import_module(case_config['EXPERIMENT_FILE'])
+experiment = importlib.import_module(case_config['EXPERIMENT_FILE'],'pkg.subpkg')
 
 model  = experiment.Model(global_config, case_config)
 
 reader = experiment.read_file
 
 def make_preprocessor(global_config, case_config):
-    
+
     def preprocess(Tuple):
         Tuple = experiment.normalize(Tuple, case_config)
         Tuple = experiment.augment(Tuple, global_config, case_config)
         return Tuple
-    
+
     return preprocess
 
 preprocessor    = make_preprocessor(global_config, case_config)
@@ -84,6 +84,7 @@ sv.mkdir(model_dir)
 
 if case_config.has_key('PRETRAINED_MODEL_PATH'):
    model.load(model_path=case_config['PRETRAINED_MODEL_PATH'])
+   print "loaded model"
 
 train_hist = []
 val_hist   = []
@@ -93,15 +94,15 @@ for i in range(TRAIN_STEPS+1):
     train_tuple = consumer.get_batch()
     #train step
     model.train_step(train_tuple)
-    
+
     if i%PRINT_STEP == 0:
         fval = np.random.choice(val_files)
         val_tuple = preprocessor(reader(fval))
         val_tuple = batch_processor(val_tuple)
         #log stuff
-        
+
         l_train, l_val, _ = logger(train_tuple, val_tuple, model, case_config, i)
-        
+
         print "{}: train loss = {}, val loss = {}".format(i,l_train, l_val)
-        
+
         model.save()

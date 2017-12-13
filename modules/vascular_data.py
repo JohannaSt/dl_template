@@ -11,7 +11,15 @@ import os
 
 def mkdir(fn):
     if not os.path.exists(os.path.abspath(fn)):
-        os.mkdir(os.path.abspath(fn))
+        if not "/" in fn:
+            os.mkdir(os.path.abspath(fn))
+        else:
+            directoryFn=""
+            folders=fn.split("/")
+            for i in range(len(folders)):
+                directoryFn+=folders[i]+'/'
+                if not os.path.exists(os.path.abspath(directoryFn)):
+                    os.mkdir(os.path.abspath(directoryFn))
 
 def window_image(image,center,window):
     start_ = center-float(window)/2
