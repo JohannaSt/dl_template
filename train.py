@@ -51,7 +51,7 @@ model  = experiment.Model(global_config, case_config)
 reader = experiment.read_file
 
 def make_preprocessor(global_config, case_config):
-
+    print "make preprocessor"
     def preprocess(Tuple):
         Tuple = experiment.normalize(Tuple, case_config)
         Tuple = experiment.augment(Tuple, global_config, case_config)
@@ -90,7 +90,6 @@ train_hist = []
 val_hist   = []
 print "Starting train loop"
 for i in range(TRAIN_STEPS+1):
-
     train_tuple = consumer.get_batch()
     #train step
     model.train_step(train_tuple)

@@ -78,7 +78,7 @@ ID = global_config['IMAGE_DIMS']
 TH = global_config['THRESHOLD']
 
 for f in tqdm(files):
-    xb,yb = reader(f)
+    xb,yb,f = reader(f)
 
     xb = xb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]
     yb = yb[ID/2-CD/2:ID/2+CD/2,ID/2-CD/2:ID/2+CD/2]

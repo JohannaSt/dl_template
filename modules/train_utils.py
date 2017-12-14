@@ -74,10 +74,12 @@ class BatchGetter(object):
         items = []
         while len(items) < self.num_batch:
             item_ = self.q.get()
-            try:
-                item_ = self.preprocessor_fn(item_)
-                items.append(item_)
-            except:
-                time.sleep(random.random())
+            #try:
+            item_ = self.preprocessor_fn(item_)
+            items.append(item_)
+                #break
+            #except:
+            #    print"get_batch exeception"
+            #    time.sleep(random.random())
 
         return self.batch_processor_fn(items)
