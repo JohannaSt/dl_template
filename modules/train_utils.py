@@ -5,8 +5,23 @@ import random
 import Queue
 import numpy as np
 from scipy.ndimage import rotate
+import matplotlib.pyplot as plt
 
 EPS = 1e-5
+
+def print_loss(train_hist,val_hist,result_dir):
+    ################################################
+    # Plot loss
+    ################################################
+    #loss curve
+    plt.figure()
+    plt.plot(train_hist, linewidth=2,color='r',label='train')
+    plt.plot(val_hist, linewidth=2,color='g',label='val')
+    plt.legend()
+    plt.savefig(result_dir+'/loss.pdf',dpi=600)
+    plt.show()
+    return True
+
 
 def random_crop(image_pair,max_offset,crop_dims):
     """assumes image_pair is a list of 2d arrays with same shape"""
