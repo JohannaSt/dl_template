@@ -39,7 +39,7 @@ class Model(object):
 
     def train_step(self,Tuple):
         self.global_step = self.global_step+1
-        print "global train step:{}".format(self.global_step)
+
         xb,yb = Tuple
 
         if np.sum(np.isnan(xb)) > 0: return
@@ -112,6 +112,7 @@ class Model(object):
 def read_file(filename):
     x = np.load(filename+'.X.npy')
     y = np.load(filename+'.Y.npy')
+    #c = np.load(filename+'.C.npy')
     return (x,y,filename)
 
 def normalize(Tuple, case_config):

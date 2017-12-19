@@ -10,7 +10,7 @@ EXPERIMENT_FILE: "I2INet"
 #PRETRAINED_MODEL_PATH: "./../media/marsdenlab/Data1/johanna/models/i2i_CT/i2i_CT.data-00000-of-00001"
 THRESHOLD: 0.3
 
-MODEL_DIR: "./results/case_test1_loft/model"
+MODEL_DIR: "./results/case1_loft/model"
 MODEL_NAME: "I2I"
 
 SPACING: 0.035

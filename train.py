@@ -104,4 +104,8 @@ for i in range(TRAIN_STEPS+1):
 
         print "{}: train loss = {}, val loss = {}".format(i,l_train, l_val)
 
+        train_hist.append(l_train)
+        val_hist.append(l_val)
+
         model.save()
+train_utils.print_loss(train_hist,val_hist,case_config['RESULTS_DIR'])
