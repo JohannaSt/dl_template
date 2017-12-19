@@ -110,10 +110,11 @@ class Model(object):
         self.train = self.opt.minimize(self.loss)
 
 def read_file(filename):
-    x = np.load(filename+'.X.npy')
-    y = np.load(filename+'.Y.npy')
-    #c = np.load(filename+'.C.npy')
-    return (x,y,filename)
+
+    x  = np.load(filename+'.X.npy')
+    y  = np.load(filename+'.Y.npy')
+    yc = np.load(filename+'.Yc.npy')
+    return (x,y,yc,filename)
 
 def normalize(Tuple, case_config):
     y = Tuple[1]
@@ -141,14 +142,17 @@ def normalize(Tuple, case_config):
     return (x,y)
 
 def augment(Tuple, global_config, case_config):
+    Tuple_ = (Tuple[0],Tuple[1])
     if case_config['ROTATE']:
-        Tuple = train_utils.random_rotate(Tuple)
+        Tuple_ = train_utils.random_rotate(Tuple_)
 
     if case_config['RANDOM_CROP']:
-        Tuple = train_utils.random_crop(Tuple,case_config['PATH_PERTURB'],
+        Tuple_ = train_utils.random_crop(Tuple_,case_config['PATH_PERTURB'],
             global_config['CROP_DIMS'])
 
-    return Tuple
+    x,y = Tuple_
+
+    return (x,y)
 
 def tuple_to_batch(tuple_list):
 
@@ -182,7 +186,7 @@ def calculate_error(ypred,y):
 
 def evaluate(Tuple,model_instance,config):
     """Note tuple is a single example pair"""
-    xb,yb = Tuple
+    xb,yb,yc = Tuple
     ypred = model_instance.predict(xb)
     ypred = ypred[0,:,:,0]
     ypred[ypred < config['THRESHOLD']]  = 0
@@ -190,7 +194,9 @@ def evaluate(Tuple,model_instance,config):
     ypred = np.round(ypred).astype(int)
     ypred[ypred.shape[0]/2,ypred.shape[0]/2] = 1
     yb = yb[0,:,:,0]
-    return calculate_error(ypred,yb),ypred
+    err_dict = calculate_error(ypred,yb)
+    err_dict['RADIUS'] = np.sqrt((1.0*np.sum(yc))/np.pi)
+    return err_dict, ypred
 
 def log(train_tuple, val_tuple, model_instance, case_config, step):
     batch_dir = case_config['RESULTS_DIR']+'/batch'

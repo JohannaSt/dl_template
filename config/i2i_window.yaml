@@ -8,7 +8,7 @@ TRAIN_FILE_LIST: "./results/case1/train.txt"
 VAL_FILE_LIST: "./results/case1/val.txt"
 TEST_FILE_LIST: "./results/case1/test.txt"
 
-MODEL_DIR: "./results/case1/model"
+MODEL_DIR: "./results/i2i_window/model"
 MODEL_NAME: "I2I"
 
 SPACING: 0.035
