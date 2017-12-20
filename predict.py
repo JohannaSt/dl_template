@@ -12,6 +12,7 @@ import argparse
 import scipy
 import importlib
 import pandas as pd
+import pickle
 
 from tqdm import tqdm
 
@@ -71,6 +72,8 @@ preprocessor    = experiment.normalize
 batch_processor = experiment.tuple_to_batch
 
 evaluator       = experiment.evaluate
+
+evalPerLength = experiment.metricPerLength
 ##########################
 # Calculate Error
 ##########################
@@ -80,6 +83,7 @@ TH = global_config['THRESHOLD']
 
 df = pd.DataFrame()
 
+maxRadius=0
 for f in tqdm(files):
     Tuple = reader(f)
     xb = Tuple[0]
@@ -94,7 +98,7 @@ for f in tqdm(files):
     T  = batch_processor(T)
 
     yp       = model.predict(T[0])[0,:,:,0]
-    err_dict, yp_thresh = evaluator((T[0],T[1],yc), model, global_config)
+    err_dict, yp_thresh, maxRadius = evaluator((T[0],T[1],yc), model, global_config, case_config,  maxRadius)
     err_dict['GROUND_TRUTH'] = f+".Y.npy"
 
     image_name = f.split('/')[-3]
@@ -124,3 +128,48 @@ for f in tqdm(files):
     np.save(ofn_np,yp)
 
 df.to_csv(OUTPUT_DIR+'/dataframe.csv')
+tablePerLength = pd.DataFrame()
+assdaverage=0
+hdaverage=0
+dcaverage=0
+tablePerLength, assdaverage, hdaverage, dcaverage=evalPerLength(df,maxRadius)
+tablePerLength.to_csv(OUTPUT_DIR+'/metricPerDiameter.csv')
+#plot number of vessels in dataset per diameter range
+fig, ax = plt.subplots(figsize=(10,10))
+ax.plot(tablePerLength.loc[:,'x_uperBound'],tablePerLength.loc[:,'numVessels'],'o',color='r')
+total=sum(tablePerLength.loc[:,'numVessels'])
+percentage=[]
+for count in range(tablePerLength.shape[0]):
+    percentage.append((100.0/total)*tablePerLength.get_value(count,'numVessels'))
+ax2 = ax.twinx()
+ax2.plot(tablePerLength.loc[:,'x_uperBound'],percentage,'o',color='r')
+ax2.set_ylabel('percent of all images in the dataset',fontsize = 15)
+plt.tick_params(labelsize=11)
+plt.show()
+
+#plot ASSD per diameter range
+figAssd,axAssd= plt.subplots(figsize=(15,15))
+lAssd=axAssd.plot(tablePerLength.loc[:,'x_uperBound'],tablePerLength.loc[:,'ASSD'],color='y',linestyle='-')
+aj=axAssd.plot(tablePerLength.loc[:,'x_uperBound'],np.array([assdaverage for i in xrange(tablePerLength.shape[0])]),color='y',linestyle='-.')
+axAssd.set_title("Assd (s)")
+plt.show()
+plt.savefig(case_config['RESULTS_DIR']+'/Assd.pdf',dpi=600)
+pickle.dump(axAssd, file(case_config['RESULTS_DIR']+'/Assd1.pickle', 'w'))
+
+#plot HD per diameter range
+figHd,axHd= plt.subplots(figsize=(15,15))
+lHd=axHd.plot(tablePerLength.loc[:,'x_uperBound'],tablePerLength.loc[:,'HD'],color='b',linestyle='-')
+aH=axHd.plot(tablePerLength.loc[:,'x_uperBound'],np.array([hdaverage for i in xrange(tablePerLength.shape[0])]),color='b',linestyle='-.')
+axHd.set_title("Hausdorf (s)")
+plt.show()
+plt.savefig(case_config['RESULTS_DIR']+'/Hausdorf.pdf',dpi=600)
+pickle.dump(axAssd, file(case_config['RESULTS_DIR']+'/Hd1.pickle', 'w'))
+
+#plot DICE per diameter range
+figDc,axDc= plt.subplots(figsize=(15,15))
+lDc=axDc.plot(tablePerLength.loc[:,'x_uperBound'],tablePerLength.loc[:,'DICE'],color='g',linestyle='-')
+aDc=axDc.plot(tablePerLength.loc[:,'x_uperBound'],np.array([dcaverage for i in xrange(tablePerLength.shape[0])]),color='g',linestyle='-.')
+axDc.set_title("Dice (l)")
+plt.show()
+plt.savefig(case_config['RESULTS_DIR']+'/Dice.pdf',dpi=600)
+pickle.dump(axDc, file(case_config['RESULTS_DIR']+'/Dice1.pickle', 'w'))

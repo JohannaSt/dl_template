@@ -10,6 +10,7 @@ from modules import layers as tf_util
 from medpy.metric.binary import hd, assd
 from modules import io
 from modules import vascular_data as sv
+import pandas as pd
 """
 This file builds the I2INet network and sets up the required
 
@@ -173,18 +174,18 @@ def tuple_to_batch(tuple_list):
         y = np.round(y)
         return x,y
 
-def calculate_error(ypred,y):
+def calculate_error(ypred,y,spacing):
     """assumes ypred and y are thresholded"""
     TP = np.sum(ypred*y)
     FP = np.sum(ypred*(1-y))
     TN = np.sum((1-ypred)*(1-y))
     FN = np.sum((1-ypred)*y)
-    HD = hd(y,ypred)
-    ASSD = assd(y,ypred)
+    HD = hd(y,ypred)*spacing
+    ASSD = assd(y,ypred)*spacing
     DICE = (1.0*TP)/(TP+FN)
     return {"TP":TP, "FP":FP, "TN":TN, "FN":FN, "HD":HD, "ASSD":ASSD, "DICE":DICE}
 
-def evaluate(Tuple,model_instance,config):
+def evaluate(Tuple,model_instance,config,case_config,maxRadius):
     """Note tuple is a single example pair"""
     xb,yb,yc = Tuple
     ypred = model_instance.predict(xb)
@@ -193,10 +194,64 @@ def evaluate(Tuple,model_instance,config):
     ypred[ypred >= config['THRESHOLD']] = 1
     ypred = np.round(ypred).astype(int)
     ypred[ypred.shape[0]/2,ypred.shape[0]/2] = 1
+    ###only needed is error/noise in ground truth:
     yb = yb[0,:,:,0]
-    err_dict = calculate_error(ypred,yb)
-    err_dict['RADIUS'] = np.sqrt((1.0*np.sum(yc))/np.pi)
-    return err_dict, ypred
+    yb[yb < config['THRESHOLD']]  = 0
+    yb[yb >= config['THRESHOLD']] = 1
+    yb = np.round(yb).astype(int)
+    yb[yb.shape[0]/2,yb.shape[0]/2] = 1
+    ###
+    err_dict = calculate_error(ypred,yb,case_config['SPACING'])
+    err_dict['RADIUS'] = np.sqrt((1.0*np.sum(yc))/np.pi)*case_config['SPACING']
+    if err_dict['RADIUS']>maxRadius:
+        maxRadius=err_dict['RADIUS']
+    return err_dict, ypred, maxRadius
+
+def metricPerLength(df, maxRadius):
+    idListPerLength=[]
+    vesselRangeLB=[]
+    vesselRangeRB=[]
+    step=maxRadius/15
+    left=-step
+    right=0
+    while right < maxRadius:
+        left+=step
+        right+=step
+        idList=[]
+        vesselRangeLB.append(left)
+        vesselRangeRB.append(right)
+        for count in range(df.shape[0]):
+            rad=df.get_value(count,'RADIUS')
+            if rad > left and rad < right:
+                idList.append(count)
+        idListPerLength.append(idList)
+    #idListPerLength[1].extend(idListPerLength[0])
+    #idListPerLength.pop(0)
+    #idListPerLength[len(idListPerLength)-2].extend(idListPerLength[len(idListPerLength)-1])
+    #idListPerLength.pop(len(idListPerLength)-1)
+
+    assdmean=[]
+    hdmean=[]
+    dcmean=[]
+    numVessels=[]
+    for j in range(len(idListPerLength)):
+        assdsum=0
+        hdsum=0
+        dcsum=0
+        for k in range(len(idListPerLength[j])):
+            assdsum+=df.get_value(idListPerLength[j][k],'ASSD')
+            hdsum+=df.get_value(idListPerLength[j][k],'HD')
+            dcsum+=df.get_value(idListPerLength[j][k],'DICE')
+        assdmean.append(assdsum/len(idListPerLength[j]))
+        hdmean.append(hdsum/len(idListPerLength[j]))
+        dcmean.append(dcsum/len(idListPerLength[j]))
+        numVessels.append(len(idListPerLength[j]))
+        assdaverage=np.mean(assdmean)
+        hdaverage=np.mean(hdmean)
+        dcaverage=np.mean(dcmean)
+    d = {'x_lowerBound': vesselRangeLB, 'x_uperBound': vesselRangeRB,'ASSD':assdmean,'HD':hdmean,'DICE':dcmean, 'numVessels':numVessels}
+    tablePerLength=pd.DataFrame(data=d)
+    return tablePerLength, assdaverage, hdaverage, dcaverage
 
 def log(train_tuple, val_tuple, model_instance, case_config, step):
     batch_dir = case_config['RESULTS_DIR']+'/batch'
