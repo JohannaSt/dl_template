@@ -73,7 +73,12 @@ batch_processor = experiment.tuple_to_batch
 
 evaluator       = experiment.evaluate
 
-evalPerLength = experiment.metricPerLength
+if case_config['RADIUSRANGEFIXED']:
+    evalPerLength = experiment.metricPerLengthFixedRange
+else:
+    evalPerLength = experiment.metricPerLength
+#evalPerLength = experiment.metricPerLength
+#evalPerLength = experiment.metricPerLengthFixedRange
 ##########################
 # Calculate Error
 ##########################
@@ -132,7 +137,11 @@ tablePerLength = pd.DataFrame()
 assdaverage=0
 hdaverage=0
 dcaverage=0
-tablePerLength, assdaverage, hdaverage, dcaverage=evalPerLength(df,maxRadius)
+if case_config['RADIUSRANGEFIXED']==True:
+    tablePerLength, assdaverage, hdaverage, dcaverage=evalPerLength(df,case_config['RADIUSRANGES'])
+else:
+    tablePerLength, assdaverage, hdaverage, dcaverage=evalPerLength(df,maxRadius)
+#tablePerLength, assdaverage, hdaverage, dcaverage=evalPerLength(df) #,maxRadius)
 tablePerLength.to_csv(OUTPUT_DIR+'/metricPerDiameter.csv')
 #plot number of vessels in dataset per diameter range
 fig, ax = plt.subplots(figsize=(10,10))
@@ -151,25 +160,25 @@ plt.show()
 figAssd,axAssd= plt.subplots(figsize=(15,15))
 lAssd=axAssd.plot(tablePerLength.loc[:,'x_uperBound'],tablePerLength.loc[:,'ASSD'],color='y',linestyle='-')
 aj=axAssd.plot(tablePerLength.loc[:,'x_uperBound'],np.array([assdaverage for i in xrange(tablePerLength.shape[0])]),color='y',linestyle='-.')
-axAssd.set_title("Assd (s)")
+axAssd.set_title("Assd (s)"+case_config['RESULTS_DIR'])
 plt.show()
-plt.savefig(case_config['RESULTS_DIR']+'/Assd.pdf',dpi=600)
+plt.savefig(case_config['RESULTS_DIR']+'/Assd.png',dpi=600)
 pickle.dump(axAssd, file(case_config['RESULTS_DIR']+'/Assd1.pickle', 'w'))
 
 #plot HD per diameter range
 figHd,axHd= plt.subplots(figsize=(15,15))
 lHd=axHd.plot(tablePerLength.loc[:,'x_uperBound'],tablePerLength.loc[:,'HD'],color='b',linestyle='-')
 aH=axHd.plot(tablePerLength.loc[:,'x_uperBound'],np.array([hdaverage for i in xrange(tablePerLength.shape[0])]),color='b',linestyle='-.')
-axHd.set_title("Hausdorf (s)")
+axHd.set_title("Hausdorf (s)"+case_config['RESULTS_DIR'])
+plt.savefig(case_config['RESULTS_DIR']+'/Hausdorf.png',dpi=600)
+pickle.dump(axHd, file(case_config['RESULTS_DIR']+'/Hd1.pickle', 'w'))
 plt.show()
-plt.savefig(case_config['RESULTS_DIR']+'/Hausdorf.pdf',dpi=600)
-pickle.dump(axAssd, file(case_config['RESULTS_DIR']+'/Hd1.pickle', 'w'))
 
 #plot DICE per diameter range
 figDc,axDc= plt.subplots(figsize=(15,15))
 lDc=axDc.plot(tablePerLength.loc[:,'x_uperBound'],tablePerLength.loc[:,'DICE'],color='g',linestyle='-')
 aDc=axDc.plot(tablePerLength.loc[:,'x_uperBound'],np.array([dcaverage for i in xrange(tablePerLength.shape[0])]),color='g',linestyle='-.')
-axDc.set_title("Dice (l)")
-plt.show()
-plt.savefig(case_config['RESULTS_DIR']+'/Dice.pdf',dpi=600)
+axDc.set_title("Dice (l)"+case_config['RESULTS_DIR'])
+plt.savefig(case_config['RESULTS_DIR']+'/Dice.png',dpi=600)
 pickle.dump(axDc, file(case_config['RESULTS_DIR']+'/Dice1.pickle', 'w'))
+plt.show()

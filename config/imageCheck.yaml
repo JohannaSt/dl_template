@@ -2,9 +2,9 @@ DATA_DIR: "/home/johanna/files"
 FILE_LIST: "/home/johanna/files/files.txt"
 
 
-RESULTS_DIR: "./results/case1_loft_useYc_valCoronary"
+RESULTS_DIR: "./results/imageCheck"
 TRAIN_FILE_LIST: "./results/case1_loft/train.txt"
-VAL_FILE_LIST: "./results/case1_coronary/val.txt"
+VAL_FILE_LIST: "./results/case1_coronary/imageCheck.txt"
 TEST_FILE_LIST: "./results/case1_loft/test.txt"
 EXPERIMENT_FILE: "I2INet"
 #PRETRAINED_MODEL_PATH: "./../media/marsdenlab/Data1/johanna/models/i2i_CT/i2i_CT.data-00000-of-00001"

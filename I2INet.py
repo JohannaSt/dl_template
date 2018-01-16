@@ -115,7 +115,8 @@ def read_file(filename):
     x  = np.load(filename+'.X.npy')
     y  = np.load(filename+'.Y.npy')
     yc = np.load(filename+'.Yc.npy')
-    return (x,y,yc,filename)
+    #order changed to work with yc as groundtruth (before x,y,yc,filename)
+    return (x,yc,y,filename)
 
 def normalize(Tuple, case_config):
     y = Tuple[1]
@@ -194,7 +195,7 @@ def evaluate(Tuple,model_instance,config,case_config,maxRadius):
     ypred[ypred >= config['THRESHOLD']] = 1
     ypred = np.round(ypred).astype(int)
     ypred[ypred.shape[0]/2,ypred.shape[0]/2] = 1
-    ###only needed is error/noise in ground truth:
+    ###only needed if error/noise in ground truth:
     yb = yb[0,:,:,0]
     yb[yb < config['THRESHOLD']]  = 0
     yb[yb >= config['THRESHOLD']] = 1
@@ -202,10 +203,71 @@ def evaluate(Tuple,model_instance,config,case_config,maxRadius):
     yb[yb.shape[0]/2,yb.shape[0]/2] = 1
     ###
     err_dict = calculate_error(ypred,yb,case_config['SPACING'])
-    err_dict['RADIUS'] = np.sqrt((1.0*np.sum(yc))/np.pi)*case_config['SPACING']
+    err_dict['RADIUS'] = np.sqrt((1.0*np.sum(yb))/np.pi)*case_config['SPACING']
+    pix=1.0*np.sum(yb)
+    print "pix={}".format(pix)
+    print err_dict['RADIUS']
     if err_dict['RADIUS']>maxRadius:
         maxRadius=err_dict['RADIUS']
     return err_dict, ypred, maxRadius
+
+def metricPerLengthFixedRange(df, step):
+    idListPerLength=[]
+    vesselRangeLB=[]
+    vesselRangeRB=[]
+    l=-1
+    r=0
+    while r < len(step)-1:
+        l+=1
+        r+=1
+        left=step[l]
+        right=step[r]
+        idList=[]
+        vesselRangeLB.append(left)
+        vesselRangeRB.append(right)
+        for count in range(df.shape[0]):
+            rad=df.get_value(count,'RADIUS')
+            if rad > left and rad < right:
+                idList.append(count)
+        idListPerLength.append(idList)
+        print len(idList)
+
+    assdmean=[]
+    hdmean=[]
+    dcmean=[]
+    numVessels=[]
+    assdaverage=0
+    hdaverage=0
+    dcaverage=0
+    totalNumber=0 #should be the same as the number of images
+    for j in range(len(idListPerLength)):
+        assdsum=0
+        hdsum=0
+        dcsum=0
+        for k in range(len(idListPerLength[j])):
+            assdsum+=df.get_value(idListPerLength[j][k],'ASSD')
+            hdsum+=df.get_value(idListPerLength[j][k],'HD')
+            dcsum+=df.get_value(idListPerLength[j][k],'DICE')
+        assdaverage+=assdsum
+        hdaverage+=hdsum
+        dcaverage+=dcsum
+        totalNumber+=len(idListPerLength[j])
+        if len(idListPerLength[j])>0:
+            assdmean.append(assdsum/len(idListPerLength[j]))
+            hdmean.append(hdsum/len(idListPerLength[j]))
+            dcmean.append(dcsum/len(idListPerLength[j]))
+            numVessels.append(len(idListPerLength[j]))
+        else:
+            assdmean.append(0)
+            hdmean.append(0)
+            dcmean.append(0)
+            numVessels.append(0)
+        assdaverage=assdaverage/totalNumber
+        hdaverage=hdaverage/totalNumber
+        dcaverage=dcaverage/totalNumber
+    d = {'x_lowerBound': vesselRangeLB, 'x_uperBound': vesselRangeRB,'ASSD':assdmean,'HD':hdmean,'DICE':dcmean, 'numVessels':numVessels,'ASSDMean':assdaverage,'HDMean':hdaverage,'DICEMean':dcaverage}
+    tablePerLength=pd.DataFrame(data=d)
+    return tablePerLength, assdaverage, hdaverage, dcaverage
 
 def metricPerLength(df, maxRadius):
     idListPerLength=[]
@@ -234,6 +296,10 @@ def metricPerLength(df, maxRadius):
     hdmean=[]
     dcmean=[]
     numVessels=[]
+    assdaverage=0
+    hdaverage=0
+    dcaverage=0
+    totalNumber=0 #should be the same as the number of images
     for j in range(len(idListPerLength)):
         assdsum=0
         hdsum=0
@@ -242,14 +308,25 @@ def metricPerLength(df, maxRadius):
             assdsum+=df.get_value(idListPerLength[j][k],'ASSD')
             hdsum+=df.get_value(idListPerLength[j][k],'HD')
             dcsum+=df.get_value(idListPerLength[j][k],'DICE')
-        assdmean.append(assdsum/len(idListPerLength[j]))
-        hdmean.append(hdsum/len(idListPerLength[j]))
-        dcmean.append(dcsum/len(idListPerLength[j]))
-        numVessels.append(len(idListPerLength[j]))
-        assdaverage=np.mean(assdmean)
-        hdaverage=np.mean(hdmean)
-        dcaverage=np.mean(dcmean)
-    d = {'x_lowerBound': vesselRangeLB, 'x_uperBound': vesselRangeRB,'ASSD':assdmean,'HD':hdmean,'DICE':dcmean, 'numVessels':numVessels}
+        assdaverage=assdaverage+assdsum
+        hdaverage=hdaverage+hdsum
+        dcaverage=dcaverage+dcsum
+        print 'assdaverage={}'.format(assdaverage)
+        totalNumber+=len(idListPerLength[j])
+        if len(idListPerLength[j])>0:
+            assdmean.append(assdsum/len(idListPerLength[j]))
+            hdmean.append(hdsum/len(idListPerLength[j]))
+            dcmean.append(dcsum/len(idListPerLength[j]))
+            numVessels.append(len(idListPerLength[j]))
+        else:
+            assdmean.append(0)
+            hdmean.append(0)
+            dcmean.append(0)
+            numVessels.append(0)
+    assdaverage=assdaverage/totalNumber
+    hdaverage=hdaverage/totalNumber
+    dcaverage=dcaverage/totalNumber
+    d = {'x_lowerBound': vesselRangeLB, 'x_uperBound': vesselRangeRB,'ASSD':assdmean,'HD':hdmean,'DICE':dcmean, 'numVessels':numVessels,'ASSDMean':assdaverage,'HDMean':hdaverage,'DICEMean':dcaverage}
     tablePerLength=pd.DataFrame(data=d)
     return tablePerLength, assdaverage, hdaverage, dcaverage
 
