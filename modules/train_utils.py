@@ -20,6 +20,7 @@ def print_loss(train_hist,val_hist,result_dir):
     plt.legend()
     plt.savefig(result_dir+'/loss.pdf',dpi=600)
     plt.show()
+    plot.close()
     return True
 
 
