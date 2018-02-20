@@ -2,14 +2,14 @@ DATA_DIR: "/home/johanna/files"
 FILE_LIST: "/home/johanna/files/files.txt"
 
 
-RESULTS_DIR: "./resultsFC/case1_coronaryPretrained_useYcCheck"
+RESULTS_DIR: "./resultsFC/case1_coronaryPretrained_useYcTHBoundCirc0.025Plus"
 TRAIN_FILE_LIST: "./resultsFC/case1_coronaryOnly_useYc/train.txt"
 VAL_FILE_LIST: "./resultsFC/case1_coronaryOnly_useYc/val2.txt"
 TEST_FILE_LIST: "./resultsFC/case1_coronaryOnly_useYc/test.txt"
-EXPERIMENT_FILE: "I2INet"
-PRETRAINED_MODEL_PATH: "./resultsFC/case1_loft_useYcTest/model/I2IFC"
+EXPERIMENT_FILE: "I2INetNonLinearTH"
+PRETRAINED_MODEL_PATH: "./resultsFC/case1_loft/model/I2IFC"
 THRESHOLD: 0.3
-THRESHOLDTYP: "CONSTANT"
+THRESHOLDTYP: "NONLINEAR"
 
 MODEL_DIR: "./resultsFC/case1_coronaryPretrained_useYcCheck/model"
 MODEL_NAME: "I2IFCPretrainedCoronary"

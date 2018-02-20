@@ -84,11 +84,11 @@ class Model(object):
         self.y = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
 
         #I2INetFC
-        self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
-           tf_util.I2INetFC(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
+        #self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
+        #   tf_util.I2INetFC(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
 
-        #self.yclass,self.yhat,_,_ = tf_util.I2INet(self.x,nfilters=NUM_FILTERS,
-        #    activation=leaky_relu,init=INIT)
+        self.yclass,self.yhat,_,_ = tf_util.I2INet(self.x,nfilters=NUM_FILTERS,
+            activation=leaky_relu,init=INIT)
 
         #Loss
         # self.loss = tf.reduce_mean(
@@ -184,8 +184,16 @@ def calculate_error(ypred,y,spacing):
     FN = np.sum((1-ypred)*y)
     HD = hd(y,ypred)*spacing
     ASSD = assd(y,ypred)*spacing
-    DICE = (1.0*TP)/(TP+FN)
-    return {"TP":TP, "FP":FP, "TN":TN, "FN":FN, "HD":HD, "ASSD":ASSD, "DICE":DICE}
+    RECALL = (1.0*TP)/(TP+FN)
+    DICE =(2.0*TP)/(2.0*TP+FP+FN)
+    return {"TP":TP, "FP":FP, "TN":TN, "FN":FN, "HD":HD, "ASSD":ASSD, "DICE":DICE, "RECALL":RECALL}
+
+def nonLinearTH(xi,yi):
+    if np.sqrt(abs (float(float(xi-127/2)/(127/2)))**2+(abs (float(float(yi-127/2)/(127/2))**2)))<0.025:
+        Z = (float(float(xi-127/2)/(127/2))**2)+(float(float(yi-127/2)/(127/2))**2)
+    else:
+        Z = 0.3
+    return Z
 
 def evaluate(Tuple,model_instance,config,case_config,maxRadius):
     """Note tuple is a single example pair"""
@@ -199,24 +207,42 @@ def evaluate(Tuple,model_instance,config,case_config,maxRadius):
     elif case_config['THRESHOLDTYP']== "NONLINEAR":
         for i in range(ypred.shape[0]-1):
             for j in range(ypred.shape[1]-1):
-                if ypred[i,j]<(config['THRESHOLD']+(i-shape[0]/2)^2+(j-shape[0]/2)^2):
+                TH=nonLinearTH(i,j)
+                if ypred[i,j]<TH:
+                    #(0.25+((float(i-ypred.shape[0]/2)/float(ypred.shape[0]/2))**2)+((float(j-ypred.shape[1]/2)/float(ypred.shape[0]/2))**2)):
                     ypred[i,j]=0
+                    #print i
+                    #print j
+                    #print (config['THRESHOLD']+0.15*(((i-ypred.shape[0]/2)/(ypred.shape[0]/2))**2)+0.15*(((j-ypred.shape[1]/2)/(ypred.shape[0]/2))**2))
                 else:
                     ypred[i,j]=1
     elif case_config['THRESHOLDTYP']== "NEIGHBORHOOD":
+        ypred_temp=np.copy(ypred)
         for i in range(ypred.shape[0]-1):
             for j in range(ypred.shape[1]-1):
-                if (ypred[i-1,j]+ypred[i-1,j+1]+ypred[i+1,j]+ypred[i-1,j-1]+ypred[i+1,j+1]+ypred[i+1,j-1]+ypred[i,j+1]+ypred[i,j-1])<(config['THRESHOLD']*4):
-                    ypred[i,j]=0
+                if (ypred[i-1,j]+ypred[i-1,j+1]+ypred[i+1,j]+ypred[i-1,j-1]+ypred[i+1,j+1]+ypred[i+1,j-1]+ypred[i,j+1]+ypred[i,j-1])<(config['THRESHOLD']*4) and ypred[i,j]<config['THRESHOLD']:
+                    ypred_temp[i,j]=0
                 else:
-                    ypred[i,j]=1
+                    ypred_temp[i,j]=1
+        ypred=ypred_temp
     ypred[ypred.shape[0]/2,ypred.shape[0]/2] = 1
+    #ypred[1+ypred.shape[0]/2,ypred.shape[0]/2] = 1
+    #ypred[ypred.shape[0]/2,1+ypred.shape[0]/2] = 1
+    #ypred[1+ypred.shape[0]/2,1+ypred.shape[0]/2] = 1
+    ypred[ypred.shape[0]-1,:]=0
+    ypred[0,:]=0
+    ypred[:,ypred.shape[0]-1]=0
+    ypred[:,0]=0
+    ypred=binary_fill_holes(ypred)
+    cont=binary_fill_holes(ypred)
+
     contour=pred_util.marchingSquares(ypred.astype(np.float32), iso=0.5, mode='center')
     cont=np.zeros((config['CROP_DIMS'], config['CROP_DIMS']))
     for i in range(len(contour)):
         cont[int(contour[i,1]),int(contour[i,0])]=1
     cont=binary_fill_holes(cont)
-    ###only needed if error/noise in ground truth:
+
+    ###only needed if error/noise in ground truth
     yb = yb[0,:,:,0]
     yb[yb < config['THRESHOLD']]  = 0
     yb[yb >= config['THRESHOLD']] = 1
@@ -226,8 +252,7 @@ def evaluate(Tuple,model_instance,config,case_config,maxRadius):
     #err_dict = calculate_error(ypred,yb,case_config['SPACING'])
     err_dict = calculate_error(cont,yb,case_config['SPACING'])
     err_dict['RADIUS'] = np.sqrt((1.0*np.sum(yb))/np.pi)*case_config['SPACING']
-    #pix=1.0*np.sum(yb)
-    #print "pix={}".format(pix)
+    
     print err_dict['RADIUS']
     if err_dict['RADIUS']>maxRadius:
         maxRadius=err_dict['RADIUS']
@@ -377,7 +402,6 @@ def vesselpercetagePerDiceFixedRange(df, step, sizeSplit):
         diceRangeRB.append(right)
         for count in range(df.shape[0]):
             dice=df.get_value(count,'DICE')
-            print 'Dice={}'.format(dice)
             rad=df.get_value(count,'RADIUS')
             if dice > left and dice <= right:
                 idList.append(count)
@@ -387,8 +411,6 @@ def vesselpercetagePerDiceFixedRange(df, step, sizeSplit):
                 elif rad >= sizeSplit:
                     idListLarge.append(count)
                     largeNum+=1
-        print 'smallNum={}'.format(smallNum)
-        print 'largeNum={}'.format(largeNum)
         idListPerLength.append(idList)
         idListPerLengthSmall.append(idListSmall)
         idListPerLengthLarge.append(idListLarge)

@@ -2,14 +2,14 @@ DATA_DIR: "/home/johanna/files"
 FILE_LIST: "/home/johanna/files/files.txt"
 
 
-RESULTS_DIR: "./results/case1_coronaryOnlyCheck1_useYc"
+RESULTS_DIR: "./results/case1_coronaryOnlyCheck_useYc_Contour"
 TRAIN_FILE_LIST: "./results/case1_coronary/train.txt"
 VAL_FILE_LIST: "./results/case1_coronary/val.txt"
 TEST_FILE_LIST: "./results/case1_coronary/test.txt"
 EXPERIMENT_FILE: "I2INet"
 THRESHOLD: 0.3
 
-MODEL_DIR: "./results/case1_coronaryOnlyCheck1_useYc/model"
+MODEL_DIR: "./results/case1_coronaryOnlyCheck_useYc/model"
 MODEL_NAME: "I2I"
 
 SPACING: 0.035

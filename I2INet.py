@@ -83,11 +83,11 @@ class Model(object):
         self.y = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
 
         #I2INetFC
-        # self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
-        #  tf_util.I2INetFC(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
+        self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
+           tf_util.I2INetFC(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
 
-        self.yclass,self.yhat,_,_ = tf_util.I2INet(self.x,nfilters=NUM_FILTERS,
-            activation=leaky_relu,init=INIT)
+       # self.yclass,self.yhat,_,_ = tf_util.I2INet(self.x,nfilters=NUM_FILTERS,
+        #    activation=leaky_relu,init=INIT)
 
         #Loss
         # self.loss = tf.reduce_mean(
@@ -183,8 +183,9 @@ def calculate_error(ypred,y,spacing):
     FN = np.sum((1-ypred)*y)
     HD = hd(y,ypred)*spacing
     ASSD = assd(y,ypred)*spacing
-    DICE = (1.0*TP)/(TP+FN)
-    return {"TP":TP, "FP":FP, "TN":TN, "FN":FN, "HD":HD, "ASSD":ASSD, "DICE":DICE}
+    RECALL = (1.0*TP)/(TP+FN)
+    DICE =(2.0*TP)/(2.0*TP+FP+FN)
+    return {"TP":TP, "FP":FP, "TN":TN, "FN":FN, "HD":HD, "ASSD":ASSD, "RECALL":RECALL, "DICE":DICE}
 
 def evaluate(Tuple,model_instance,config,case_config,maxRadius):
     """Note tuple is a single example pair"""
@@ -329,6 +330,60 @@ def metricPerLength(df, maxRadius):
     d = {'x_lowerBound': vesselRangeLB, 'x_uperBound': vesselRangeRB,'ASSD':assdmean,'HD':hdmean,'DICE':dcmean, 'numVessels':numVessels,'ASSDMean':assdaverage,'HDMean':hdaverage,'DICEMean':dcaverage}
     tablePerLength=pd.DataFrame(data=d)
     return tablePerLength, assdaverage, hdaverage, dcaverage
+
+def vesselpercetagePerDiceFixedRange(df, step, sizeSplit):
+    idListPerLength=[]
+    idListPerLengthSmall=[]
+    idListPerLengthLarge=[]
+    smallNum=0
+    largeNum=0
+    diceRangeLB=[]
+    diceRangeRB=[]
+    percentage=[]
+    percentageSmall=[]
+    percentageLarge=[]
+    l=-1
+    r=0
+    while r < len(step)-1:
+        l+=1
+        r+=1
+        left=step[l]
+        right=step[r]
+        idList=[]
+        idListSmall=[]
+        idListLarge=[]
+        diceRangeLB.append(left)
+        diceRangeRB.append(right)
+        for count in range(df.shape[0]):
+            dice=df.get_value(count,'DICE')
+            print 'Dice={}'.format(dice)
+            rad=df.get_value(count,'RADIUS')
+            if dice > left and dice <= right:
+                idList.append(count)
+                if rad < sizeSplit:
+                    idListSmall.append(count)
+                    smallNum+=1
+                elif rad >= sizeSplit:
+                    idListLarge.append(count)
+                    largeNum+=1
+        print 'smallNum={}'.format(smallNum)
+        print 'largeNum={}'.format(largeNum)
+        idListPerLength.append(idList)
+        idListPerLengthSmall.append(idListSmall)
+        idListPerLengthLarge.append(idListLarge)
+        per=float(len(idList))/float(df.shape[0])
+        perSmall=float(len(idListSmall))
+        perLarge=float(len(idListLarge))
+        percentage.append(per)
+        percentageSmall.append(perSmall)
+        percentageLarge.append(perLarge)
+    if smallNum!=0:
+        percentageSmall[:] = [x / smallNum for x in percentageSmall]
+    if largeNum!=0:
+        percentageLarge[:] = [x / largeNum for x in percentageLarge]
+    d = {'percentage': percentage, 'percentageSmall': percentageSmall,'percentageLarge':percentageLarge}
+    tablePercentage=pd.DataFrame(data=d)
+    return percentage, percentageSmall, percentageLarge, tablePercentage
 
 def log(train_tuple, val_tuple, model_instance, case_config, step):
     batch_dir = case_config['RESULTS_DIR']+'/batch'

@@ -103,7 +103,7 @@ for f in tqdm(files):
     T  = batch_processor(T)
 
     yp       = model.predict(T[0])[0,:,:,0]
-    err_dict, yp_thresh, maxRadius, contour = evaluator((T[0],T[1],yc), model, global_config, case_config,  maxRadius)
+    err_dict, yp_thresh, maxRadius = evaluator((T[0],T[1],yc), model, global_config, case_config,  maxRadius)
     err_dict['GROUND_TRUTH'] = f+".Y.npy"
 
     image_name = f.split('/')[-3]
@@ -123,15 +123,7 @@ for f in tqdm(files):
     err_dict['PATH'] = path_name
     err_dict['PATH_POINT'] = point_number
 
-    '''
-    plt.figure()
-    plt.imshow(yp[:,:],cmap='gray')
-    plt.plot(contour[:,0],contour[:,1],color='w',label='contour')
-    plt.savefig(ofn+'.ypred_contours.png')
-    '''
-
-    scipy.misc.imsave(ofn+'rad'+str(err_dict['RADIUS'])+'DICE'+str(err_dict['DICE'])+'.cont.png',contour)
-    scipy.misc.imsave(ofn+'.x.png',xb)
+    scipy.misc.imsave(ofn+'rad'+str(err_dict['RADIUS'])+'.x.png',xb)
     scipy.misc.imsave(ofn+'.ypred.png',yp)
     scipy.misc.imsave(ofn+'.y.png',yb)
     scipy.misc.imsave(ofn+'DICE'+str(err_dict['DICE'])+'.ypred_thresh.png',yp_thresh)

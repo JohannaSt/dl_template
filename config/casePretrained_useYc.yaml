@@ -2,13 +2,14 @@ DATA_DIR: "/home/johanna/files"
 FILE_LIST: "/home/johanna/files/files.txt"
 
 
-RESULTS_DIR: "./results/case1_coronary_useYc_newMean"
+RESULTS_DIR: "./results/newDice/case1_coronaryPretrained_useYc_WORC1_Split0125RecalcImage"
 TRAIN_FILE_LIST: "./results/case1_coronary/train.txt"
-VAL_FILE_LIST: "./results/case1_coronary/val.txt"
+VAL_FILE_LIST: "./results/case1_coronary/val2.txt"
 TEST_FILE_LIST: "./results/case1_coronary/test.txt"
-EXPERIMENT_FILE: "I2INet"
+EXPERIMENT_FILE: "I2INetNonLinearTH"
 PRETRAINED_MODEL_PATH: "./results/case1_loft/model/I2I"
 THRESHOLD: 0.3
+THRESHOLDTYP: "CONSTANT"
 
 MODEL_DIR: "./results/case1_coronary_useYc/model"
 MODEL_NAME: "I2IPreTrainedCoronary_useYc"
@@ -26,7 +27,10 @@ NUM_CHANNELS: 1
 PATH_PERTURB: 5
 NORMALIZE: LOCAL_MAX_NORM
 RADIUSRANGEFIXED: False
-RADIUSRANGES: [0.000,0.002,0.003,0.004,0.005,0.006,0.007,0.008,0.009,0.01,0.011,.012,0.013,0.014,5]
+RADIUSRANGES: [0.0,0.075,0.1,0.125,0.15,0.175,0.2,0.225,0.25,5]
+  #[0.000,0.002,0.003,0.004,0.005,0.006,0.007,0.008,0.009,0.01,0.011,.012,0.013,0.014,5]
+DICERANGES: [0.0,0.10,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+DICESPLIT: 0.125
 
 VAL_PATTERNS:
   - OSMSC0109

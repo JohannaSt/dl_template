@@ -175,7 +175,7 @@ def I2INetFC(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filter
         activation=activation,init=init)
 
     #I2INetFC
-    y_vec = tf.reshape(yclass_, (Nbatch,CROP_DIMS**2))
+    y_vec = tf.reshape(yhat_, (Nbatch,CROP_DIMS**2))
 
     sp = fullyConnected(y_vec,CROP_DIMS,activation, std=init, scope='sp1')
     sp = fullyConnected(y_vec,CROP_DIMS**2,activation, std=init, scope='sp2')

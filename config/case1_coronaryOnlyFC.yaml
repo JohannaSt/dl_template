@@ -2,15 +2,15 @@ DATA_DIR: "/home/johanna/files"
 FILE_LIST: "/home/johanna/files/files.txt"
 
 
-RESULTS_DIR: "./resultsFC/case1_coronaryOnly_useYc_All"
+RESULTS_DIR: "./resultsFC/case1_coronaryOnlyValData"
 TRAIN_FILE_LIST: "./resultsFC/case1_coronaryOnly_useYc/train.txt"
-VAL_FILE_LIST: "./resultsFC/case1_coronaryOnly_useYc/val.txt"
+VAL_FILE_LIST: "./resultsFC/case1_coronaryOnly_useYc/val2.txt"
 TEST_FILE_LIST: "./resultsFC/case1_coronaryOnly_useYc/test.txt"
-EXPERIMENT_FILE: "I2INet"
+EXPERIMENT_FILE: "I2INetNonLinearTH"
 THRESHOLD: 0.3
 THRESHOLDTYP: "CONSTANT"
 
-MODEL_DIR: "./resultsFC/case1_coronaryOnly_useYc_All/model"
+MODEL_DIR: "./resultsFC/case1_coronaryOnly/model"
 MODEL_NAME: "I2IFC"
 
 SPACING: 0.035
@@ -26,8 +26,10 @@ NUM_CHANNELS: 1
 PATH_PERTURB: 5
 NORMALIZE: LOCAL_MAX_NORM
 #if True uses RadiusRanges as vessel size ranges else if False devides the total vessel size range into 15 parts
-RADIUSRANGEFIXED: False
-RADIUSRANGES: [0.000,0.002,0.003,0.004,0.005,0.006,0.007,0.008,0.009,0.01,0.011,.012,0.013,0.014,5]
+RADIUSRANGEFIXED: True
+RADIUSRANGES: [0.0,0.0957298927,0.1914597854,0.2871896781,0.3829195709,0.4786494636,0.5743793563,0.670109249,0.7658391417,0.8615690344,0.9572989271,1.0530288198,1.1487587126,1.2444886053,1.340218498,1.4359483907,5.0]
+#[0.0,0.075,0.1,0.125,0.15,0.175,0.2,0.225,0.25,5]
+  #[0.000,0.002,0.003,0.004,0.005,0.006,0.007,0.008,0.009,0.01,0.011,.012,0.013,0.014,5]
 DICERANGES: [0.0,0.10,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
 DICESPLIT: 0.3
 
