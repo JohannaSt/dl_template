@@ -194,6 +194,52 @@ def I2INetFC(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filter
 
     return yclass, yhat, yclass_, yhat_
 
+def LSTM(batch_size, truncated_backprop_length, num_layers, state_size, num_classes=2, scope='lstm',reuse=False):
+	with tf.variable_scope(scope,reuse=reuse):
+		batchX_placeholder = tf.placeholder(tf.float32, [batch_size, truncated_backprop_length])
+		batchY_placeholder = tf.placeholder(tf.int32, [batch_size, truncated_backprop_length])
+
+		init_state = tf.placeholder(tf.float32, [num_layers, 2, batch_size, state_size])
+
+		state_per_layer_list = tf.unpack(init_state, axis=0)
+		rnn_tuple_state = tuple(
+	    	[tf.nn.rnn_cell.LSTMStateTuple(state_per_layer_list[idx][0], state_per_layer_list[idx][1])
+	     	for idx in range(num_layers)]
+		)
+
+		W = tf.Variable(np.random.rand(state_size+1, state_size), dtype=tf.float32)
+		b = tf.Variable(np.zeros((1,state_size)), dtype=tf.float32)
+
+		W2 = tf.Variable(np.random.rand(state_size, num_classes),dtype=tf.float32)
+		b2 = tf.Variable(np.zeros((1,num_classes)), dtype=tf.float32)
+	
+		# Forward passes
+		cell = tf.nn.rnn_cell.LSTMCell(state_size, state_is_tuple=True)
+		cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.5)
+		cell = tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
+		states_series, current_state = tf.nn.dynamic_rnn(cell, tf.expand_dims(batchX_placeholder, -1), initial_state=rnn_tuple_state)
+		states_series = tf.reshape(states_series, [-1, state_size])
+
+		logits = tf.matmul(states_series, W2) + b2 #Broadcasted addition
+		labels = tf.reshape(batchY_placeholder, [-1])
+
+		logits_series = tf.unpack(tf.reshape(logits, [batch_size, truncated_backprop_length, 2]), axis=1)
+		predictions_series = [tf.nn.softmax(logit) for logit in logits_series]
+	
+	return predictions_series, logits_series, labels, logits
+
+def I2IFcLSTM(x, truncated_backprop_length, nfilters=32, init='xavier', activation=tf.nn.relu, output_filters=1, batch_size=4,num_layers=3,state_size=100):
+	#prepare and reshape input
+	Nbatch = tf.shape(x)[0]
+	CROP_DIMS = x.get_shape().as_list()[1]
+	yclass,yhat, i2i_yclass, i2i_yhat =I2INetFC(x, nfilters=nfilters, activation=activation, init=init)
+	#reshape I2IFc output 
+	y_vec = tf.reshape(yhat_, (Nbatch,CROP_DIMS**2))
+	#LSTM
+	predictions_series, logits_series=LSTM(batch_size, truncated_backprop_length, num_layers, state_size, num_classes=2, scope='lstm',reuse=False)
+
+	return predictions_series, logits_series, labels, logits
+
 def multitaskNet(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filters=1,
     hidden_size=300,num_contour_points=20):
 
