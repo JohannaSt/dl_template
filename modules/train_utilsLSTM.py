@@ -39,25 +39,30 @@ def random_crop(image_pair,max_offset,crop_dims):
 
     return tuple(return_images)
 
-def random_rotate(image_pair):
+def random_rotate(image_pairList):
     angle = np.random.randint(360)
-    return_images = []
-    for i,im in enumerate(image_pair):
-        return_images.append(rotate(im,angle,axes=(1,0),reshape=False))
-
-    return tuple(return_images)
+    return_imagesList =[]
+    for count in range(len(image_pairList)):
+        return_images = []
+        for i,im in enumerate(image_pairList[count]):
+            return_images.append(rotate(im,angle,axes=(1,0),reshape=False))
+        return_imagesList.append(return_images)
+    return tuple(return_imagesList)
 
 class FileReaderThread(threading.Thread):
     """Note this class is a thread, so it runs in a separate thread parallel
     to the main program"""
-    def __init__(self, q, file_list, batch_ids, reader_fn, group=None, target=None, name="producer",
+    def __init__(self, q, file_list, batch_ids, path_start, path_length, reader_fn, group=None, target=None, name="producer",
                  args=(), kwargs=None, verbose=None):
         super(FileReaderThread,self).__init__()
         self.target    = target
         self.name      = name
         self.file_list = file_list
         self.reader_fn = reader_fn
-	self.batch_ids = batch_ids
+	    self.batch_ids = batch_ids
+        self.path_length=path_length
+        self.path_start= path_start
+        self.num_batch= num_batch
         self.q         = q
 
     def run(self):
@@ -69,43 +74,43 @@ class FileReaderThread(threading.Thread):
                 self.q.put(item_)
                 time.sleep(random.random())
 		'''
+                #fill queue with Lists of images along random paths of the same lenght building a batch
                 batchList = np.random.choice(self.batch_ids)
-		itemList=[]
-		for iterator in range(len(batchList)):
-			itemList.append(self.reader_fn(self.file_list[batchList[iterator]]))
-                self.q.put(itemList)
+                self.num_batch=len(batchList)
+        		itemList=[]
+        		for iterator in range(len(batchList)):
+                    for it in range(path_length[batchList[iterator]]):
+                        itemList.append(self.reader_fn(self.file_list[path_start[batchList[iterator]]+it]))
+                    self.q.put(itemList)
                 time.sleep(random.random())
         return
 
 class BatchGetter(object):
-    def __init__(self, preprocessor_fn, batch_processor_fn, num_batch,queue_size,file_list, batch_ids,
+    def __init__(self, preprocessor_fn, batch_processor_fn, num_batch,queue_size,file_list, batch_ids, path_start,path_length,
     reader_fn,num_threads=1):
         self.q                  = Queue.Queue(queue_size)
         self.preprocessor_fn    = preprocessor_fn
         self.batch_processor_fn = batch_processor_fn
         self.num_batch          = num_batch
         self.file_list          = file_list
-	self.batch_ids		= batch_ids
+	    self.batch_ids	    	= batch_ids
+        self.path_length        = path_length
+        self.path_start         = path_start
         self.reader_fn          = reader_fn
         self.num_threads        = num_threads
 
         self.readers = []
         for i in range(self.num_threads):
-            t = FileReaderThread(self.q,self.file_list,self.batch_ids, self.reader_fn,name='producer'+str(i))
+            t = FileReaderThread(self.q,self.file_list,self.batch_ids, self.path_start, self.path_length, self.num_batch, self.reader_fn,name='producer'+str(i))
             t.setDaemon(True)
             t.start()
             self.readers.append(t)
 
     def get_batch(self):
-        #items = []
-        #while len(items) < self.num_batch:
-        items = self.q.get()
-            #try:
-            items = self.preprocessor_fn(items)
-            #items.append(item_)
-                #break
-            #except:
-            #    print"get_batch exeception"
-            #    time.sleep(random.random())
-
+        items = []
+        while len(items) < self.num_batch:
+            item_ = self.q.get()
+            item_ = self.preprocessor_fn(item_)
+            items.append(item_)
+            #returns a list of lists of image tuples along a vessec path of the same length
         return self.batch_processor_fn(items)

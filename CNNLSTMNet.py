@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath('..'))
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from modules import train_utils
+from modules import train_utilsLSTM
 from modules import layers as tf_util
 from medpy.metric.binary import hd, assd
 from modules import io
@@ -39,8 +39,8 @@ class Model(object):
         self.sess.run(tf.global_variables_initializer())
 
 
-    def train_step(self,Tuple):
-#CHANGE!
+    def train_step(self,train_tupleListList):
+#CHANGE to reshape train_tupleListList and feed into net
         self.global_step = self.global_step+1
 
         xb,yb = Tuple
@@ -85,23 +85,24 @@ class Model(object):
         self.y = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
 
         #I2INetFC
-        self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
-          tf_util.I2INetFC(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
+        #self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
+        #  tf_util.I2INetFC(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
 
+        #I2INet
         #self.yclass,self.yhat,_,_ = tf_util.I2INet(self.x,nfilters=NUM_FILTERS,
         #    activation=leaky_relu,init=INIT)
 
         #Loss
         # self.loss = tf.reduce_mean(
         #        tf.nn.sigmoid_cross_entropy_with_logits(logits=self.i2i_yhat,labels=self.y))
-	
-	#I2IFcLSTM
-	#self.yclass_series,self.yhat_series, self.yclass, self.yhat =\
-        #  tf_util.I2IFcLSTM(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
-	#self.losses = tf.nn.sparse_softmax_cross_entropy_with_logits(self.yhat, self.yclass)
-	#self.loss = tf.reduce_mean(self.losses)
 
-	
+    	#I2IFcLSTM
+    	self.yclass_series,self.yhat_series, self.yclass, self.yhat =\
+          tf_util.I2IFcLSTM(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
+    	self.losses = tf.nn.sparse_softmax_cross_entropy_with_logits(self.yhat, self.yclass)
+    	self.loss = tf.reduce_mean(self.losses)
+
+
 
 
         self.loss = tf.reduce_mean(
@@ -118,9 +119,9 @@ class Model(object):
         values = [LEARNING_RATE, LEARNING_RATE/10, LEARNING_RATE/100, LEARNING_RATE/1000]
         learning_rate = tf.train.piecewise_constant(self.global_step, boundaries, values)
 
-	#with LSTM
-	#self.opt = tf.train.AdagradOptimizer(learning_rate)
-        self.opt = tf.train.AdamOptimizer(learning_rate)
+    	#with LSTM
+    	self.opt = tf.train.AdagradOptimizer(learning_rate)
+        #self.opt = tf.train.AdamOptimizer(learning_rate)
         self.train = self.opt.minimize(self.loss)
 
 def read_file(filename):
@@ -159,10 +160,10 @@ def normalize(Tuple, case_config):
 def augment(Tuple, global_config, case_config):
     Tuple_ = (Tuple[0],Tuple[1])
     if case_config['ROTATE']:
-        Tuple_ = train_utils.random_rotate(Tuple_)
+        Tuple_ = train_utilsLSTM.random_rotate(Tuple_)
 
     if case_config['RANDOM_CROP']:
-        Tuple_ = train_utils.random_crop(Tuple_,case_config['PATH_PERTURB'],
+        Tuple_ = train_utilsLSTM.random_crop(Tuple_,case_config['PATH_PERTURB'],
             global_config['CROP_DIMS'])
 
     x,y = Tuple_
