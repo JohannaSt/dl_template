@@ -194,10 +194,10 @@ def I2INetFC(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filter
 
     return yclass, yhat, yclass_, yhat_
 
-def LSTM(batch_size, truncated_backprop_length, num_layers, state_size, num_classes=2, scope='lstm',reuse=False):
+def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size, num_classes=2, scope='lstm',reuse=False):
 	with tf.variable_scope(scope,reuse=reuse):
-		batchX_placeholder = tf.placeholder(tf.float32, [batch_size, truncated_backprop_length])
-		batchY_placeholder = tf.placeholder(tf.int32, [batch_size, truncated_backprop_length])
+		#batchX_placeholder = tf.placeholder(tf.float32, [batch_size, truncated_backprop_length,input_size])
+		batchY_placeholder = tf.placeholder(tf.int32, [batch_size, truncated_backprop_length, input_size])
 
 		init_state = tf.placeholder(tf.float32, [num_layers, 2, batch_size, state_size])
 
@@ -217,11 +217,13 @@ def LSTM(batch_size, truncated_backprop_length, num_layers, state_size, num_clas
 		cell = tf.nn.rnn_cell.LSTMCell(state_size, state_is_tuple=True)
 		cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.5)
 		cell = tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers, state_is_tuple=True)
-		states_series, current_state = tf.nn.dynamic_rnn(cell, tf.expand_dims(batchX_placeholder, -1), initial_state=rnn_tuple_state)
+		#states_series, current_state = tf.nn.dynamic_rnn(cell, tf.expand_dims(batchX_placeholder, -1), initial_state=rnn_tuple_state)
+		states_series, current_state = tf.nn.dynamic_rnn(cell, tf.expand_dims(x, -1), initial_state=rnn_tuple_state)
 		states_series = tf.reshape(states_series, [-1, state_size])
 
 		logits = tf.matmul(states_series, W2) + b2 #Broadcasted addition
 		labels = tf.reshape(batchY_placeholder, [-1])
+		#labels = tf.reshape(y, [-1])
 
 		logits_series = tf.unpack(tf.reshape(logits, [batch_size, truncated_backprop_length, 2]), axis=1)
 		predictions_series = [tf.nn.softmax(logit) for logit in logits_series]
@@ -232,11 +234,13 @@ def I2IFcLSTM(x, truncated_backprop_length, nfilters=32, init='xavier', activati
 	#prepare and reshape input
 	Nbatch = tf.shape(x)[0]
 	CROP_DIMS = x.get_shape().as_list()[1]
-	yclass,yhat, i2i_yclass, i2i_yhat =I2INetFC(x, nfilters=nfilters, activation=activation, init=init)
-	#reshape I2IFc output 
-	y_vec = tf.reshape(yhat_, (Nbatch,CROP_DIMS**2))
+	for i in range(truncated_backprop_length):
+		yclass,yhat, i2i_yclass, i2i_yhat =I2INetFC(x[:][i], nfilters=nfilters, activation=activation, init=init)
+		#reshape I2IFc output 
+		y_vec = tf.reshape(yhat_, (Nbatch,CROP_DIMS**2))
+		LSTM_input.append(y_vec)
 	#LSTM
-	predictions_series, logits_series=LSTM(batch_size, truncated_backprop_length, num_layers, state_size, num_classes=2, scope='lstm',reuse=False)
+	predictions_series, logits_series, labels,logits=LSTM(LSTM_input,batch_size, truncated_backprop_length, num_layers, state_size, num_classes=2, scope='lstm',reuse=False)
 
 	return predictions_series, logits_series, labels, logits
 

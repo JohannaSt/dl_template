@@ -43,12 +43,15 @@ class Model(object):
 #CHANGE to reshape train_tupleListList and feed into net
         self.global_step = self.global_step+1
 
-        xb,yb = Tuple
+        #xb,yb = Tuple
 
-        if np.sum(np.isnan(xb)) > 0: return
-        if np.sum(np.isnan(yb)) > 0: return
-
+        #if np.sum(np.isnan(xb)) > 0: return
+        #if np.sum(np.isnan(yb)) > 0: return
+	
+	xb=train_tupleListList[:][:][0]
+	xb=train_tupleListList[:][:][1]
         self.sess.run(self.train,{self.x:xb,self.y:yb})
+	
 
     def save(self):
         model_dir  = self.case_config['MODEL_DIR']
