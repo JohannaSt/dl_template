@@ -59,7 +59,7 @@ class FileReaderThread(threading.Thread):
         self.name      = name
         self.file_list = file_list
         self.reader_fn = reader_fn
-	    self.batch_ids = batch_ids
+	self.batch_ids = batch_ids
         self.path_length=path_length
         self.path_start= path_start
         self.num_batch= num_batch
@@ -77,8 +77,8 @@ class FileReaderThread(threading.Thread):
                 #fill queue with Lists of images along random paths of the same lenght building a batch
                 batchList = np.random.choice(self.batch_ids)
                 self.num_batch=len(batchList)
-        		itemList=[]
-        		for iterator in range(len(batchList)):
+        	itemList=[]
+        	for iterator in range(len(batchList)):
                     for it in range(path_length[batchList[iterator]]):
                         itemList.append(self.reader_fn(self.file_list[path_start[batchList[iterator]]+it]))
                     self.q.put(itemList)
@@ -93,7 +93,7 @@ class BatchGetter(object):
         self.batch_processor_fn = batch_processor_fn
         self.num_batch          = num_batch
         self.file_list          = file_list
-	    self.batch_ids	    	= batch_ids
+	self.batch_ids	    	= batch_ids
         self.path_length        = path_length
         self.path_start         = path_start
         self.reader_fn          = reader_fn

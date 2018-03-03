@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 from modules import train_utilsLSTM
-from modules import layers as tf_util
+from modules import layersLSTM as tf_util
 from medpy.metric.binary import hd, assd
 from modules import io
 from modules import vascular_data as sv
@@ -50,6 +50,8 @@ class Model(object):
 	
 	xb=train_tupleListList[:][:][0]
 	xb=train_tupleListList[:][:][1]
+	print 'here'
+	print shape(xb)
         self.sess.run(self.train,{self.x:xb,self.y:yb})
 	
 
@@ -83,9 +85,9 @@ class Model(object):
         INIT        = self.global_config['INIT']
 
         leaky_relu = tf.contrib.keras.layers.LeakyReLU(LEAK)
-
-        self.x = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
-        self.y = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
+	#TODO: adapt initial dimensions
+        self.x = tf.placeholder(shape=[None,None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
+        self.y = tf.placeholder(shape=[None,None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
 
         #I2INetFC
         #self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
@@ -102,14 +104,14 @@ class Model(object):
     	#I2IFcLSTM
     	self.yclass_series,self.yhat_series, self.yclass, self.yhat =\
           tf_util.I2IFcLSTM(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
-    	self.losses = tf.nn.sparse_softmax_cross_entropy_with_logits(self.yhat, self.yclass)
+    	self.losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.yhat, labels=self.yclass)
     	self.loss = tf.reduce_mean(self.losses)
 
 
 
 
-        self.loss = tf.reduce_mean(
-               tf.nn.sigmoid_cross_entropy_with_logits(logits=self.yhat,labels=self.y))
+        #self.loss = tf.reduce_mean(
+         #      tf.nn.sigmoid_cross_entropy_with_logits(logits=self.yhat,labels=self.y))
 
         self.loss = self.loss + tf_util.l2_reg(LAMBDA)
 

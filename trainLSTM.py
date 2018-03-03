@@ -1,5 +1,5 @@
 from modules import io
-from modules import layers as tf_util
+from modules import layersLSTM as tf_util
 from modules import vascular_data as sv
 from modules import train_utils
 
@@ -53,12 +53,12 @@ globalCounter=0
 path_length=[]
 path_start=[]
 while globalCounter<(len(train_paths)-1):
-	print globalCounter
+	#print globalCounter
 	while train_paths[globalCounter][-2]==current_path and globalCounter<(len(train_paths)-1):
 		localCounter+=1
 		globalCounter+=1
 	path_length.append(localCounter)
-    path_start.append(globalCounter-localCounter)
+    	path_start.append(globalCounter-localCounter)
 	if localCounter>maxCount:
 		maxCount=localCounter+1
 	localCounter=0
@@ -69,7 +69,7 @@ while globalCounter<(len(train_paths)-1):
 batch_ids= [ [] for i in range(maxCount) ]
 for i in range(len(path_length)):
 	batch_ids[(path_length[i])].append(i)
-print batch_ids
+#print batch_ids
 
 
 
@@ -85,7 +85,7 @@ while globalCounter_val<(len(val_paths)-1):
 		localCounter_val+=1
 		globalCounter_val+=1
 	path_length_val.append(localCounter_val)
-    path_start_val.append(globalCounterr_val-localCounterr_val)
+    	path_start_val.append(globalCounter_val-localCounter_val)
 	if localCounter_val>maxCount_val:
 		maxCount_val=localCounter_val+1
 	localCounter_val=0
@@ -151,8 +151,8 @@ for i in range(TRAIN_STEPS+1):
 
         batchIdsVal = np.random.choice(batch_ids_val)
 	batchIdsValList=[]
-		for iterator in range(len(batchIdsVal)):
-			batchIdsValList.append(reader(val_files[batchIdsVal[iterator]]))
+	for iterator in range(len(batchIdsVal)):
+		batchIdsValList.append(reader(val_files[batchIdsVal[iterator]]))
         val_tupleList = preprocessor(batchIdsValList)
         val_tupleList = batch_processor(val_tupleList)
         #log stuff
