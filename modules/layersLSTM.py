@@ -213,13 +213,17 @@ def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_s
 	    	[tf.nn.rnn_cell.LSTMStateTuple(state_per_layer_list[idx][0], state_per_layer_list[idx][1])
 	     	for idx in range(num_layers)]
 		)
+        #Convolution parameters
+        kernel=[3,3]
+        channels=1
+        filters=12
 
 		W_LSTM = tf.Variable(np.random.rand(state_size+1, state_size), dtype=tf.float32)
 		b_LSTM = tf.Variable(np.zeros((1,state_size)), dtype=tf.float32)
 
 		W2_LSTM = tf.Variable(np.random.rand(state_size, num_classes),dtype=tf.float32)
 		b2_LSTM = tf.Variable(np.zeros((1,num_classes)), dtype=tf.float32)
-	
+
 		# create 2 LSTMCells Tensorflow example:
 		#rnn_layers = [tf.nn.rnn_cell.LSTMCell(size) for size in [128, 256]]
 
@@ -236,11 +240,11 @@ def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_s
 
 		# Forward passes
 		#cell = tf.nn.rnn_cell.LSTMCell(state_size)#, state_is_tuple=True)
-		rnn_layers = [tf.nn.rnn_cell.LSTMCell(size) for size in range(state_size+1)]
+		rnn_layers = [tf.nn.rnn_cell.conv2DLSTMCell(size) for size in range(state_size+1)]
 		#cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.5)
 		cell = tf.nn.rnn_cell.MultiRNNCell(rnn_layers)#[cell] * num_layers)#, state_is_tuple=True)
 		#states_series, current_state = tf.nn.dynamic_rnn(cell, tf.expand_dims(batchX_placeholder, -1), initial_state=rnn_tuple_state)
-		states_series, current_state = tf.nn.dynamic_rnn(cell, x,time_major=True, dtype=tf.float32)#initial_state=init_state)
+		states_series, current_state = tf.nn.dynamic_rnn(cell, x,time_major=True, dtype=x.dtype)#initial_state=init_state)
 		print states_series.get_shape().as_list()
 		states_series = tf.reshape(states_series, [-1, state_size])
 
@@ -250,7 +254,7 @@ def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_s
 
 		logits_series = tf.unstack(tf.reshape(logits, [ truncated_backprop_length,batch_size, 2]), axis=1)
 		predictions_series = [tf.nn.softmax(logit) for logit in logits_series]
-	
+
 	return predictions_series, logits_series, labels, logits
 
 def I2IFcLSTM(x, nfilters=32,  activation=tf.nn.relu, init='xavier', output_filters=1, batch_size=4,num_layers=3,state_size=100):
@@ -266,10 +270,11 @@ def I2IFcLSTM(x, nfilters=32,  activation=tf.nn.relu, init='xavier', output_filt
 	CROP_DIMS = x.get_shape().as_list()[2]
 	for i in range(truncated_backprop_length):
 		yclass,yhat, i2i_yclass, i2i_yhat =I2INetFC(x[:][i], nfilters=nfilters, activation=activation, init=init)
-		#reshape I2IFc output 
-		y_vec = tf.reshape(yhat, (Nbatch,CROP_DIMS**2))
-		input_size=y_vec.get_shape().as_list()[0]		
-		LSTM_input.append(y_vec)
+		#reshape I2IFc output
+		#y_vec = tf.reshape(yhat, (Nbatch,CROP_DIMS**2))
+		#input_size=y_vec.get_shape().as_list()[0]
+        input_size=yhat.get_shape().as_list()
+		LSTM_input.append(yhat)
 	print input_size
 	print truncated_backprop_length
 	print Nbatch
