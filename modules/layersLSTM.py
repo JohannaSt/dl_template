@@ -203,8 +203,8 @@ def I2INetFC(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filter
 def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_size, num_classes=2, scope='lstm',reuse=True):
 	with tf.variable_scope(scope,reuse=reuse):
 		reuse=tf.AUTO_REUSE
-		batchX_placeholder = tf.placeholder(tf.float32, [batch_size, truncated_backprop_length,input_size])
-		batchY_placeholder = tf.placeholder(tf.int32, [batch_size, truncated_backprop_length, input_size])
+		batchX_placeholder = tf.placeholder(tf.float32, [batch_size, truncated_backprop_length]+input_size)
+		batchY_placeholder = tf.placeholder(tf.int32, [batch_size, truncated_backprop_length]+ input_size)
 
 		init_state = tf.placeholder(tf.float32, [num_layers, 2, batch_size, state_size])
 
@@ -213,15 +213,17 @@ def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_s
 	    	[tf.nn.rnn_cell.LSTMStateTuple(state_per_layer_list[idx][0], state_per_layer_list[idx][1])
 	     	for idx in range(num_layers)]
 		)
-        #Convolution parameters
-        kernel=[3,3]
-        channels=1
-        filters=12
+		#Convolution parameters
+		kernel=[3,3]
+		channels=1
+		filters=1
+		W_convLSTM = tf.Variable(np.random.rand(kernel[0],kernel[1],1), name='W_convLSTM')
+		input_place=tf.placeholder(tf.float32,input_size)
 
 		W_LSTM = tf.Variable(np.random.rand(state_size+1, state_size), dtype=tf.float32)
 		b_LSTM = tf.Variable(np.zeros((1,state_size)), dtype=tf.float32)
 
-		W2_LSTM = tf.Variable(np.random.rand(state_size, num_classes),dtype=tf.float32)
+		W2_LSTM = tf.Variable(np.random.rand([input_size[0],input_size[1],input_size[2]], num_classes),dtype=tf.float32)
 		b2_LSTM = tf.Variable(np.zeros((1,num_classes)), dtype=tf.float32)
 
 		# create 2 LSTMCells Tensorflow example:
@@ -240,13 +242,20 @@ def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_s
 
 		# Forward passes
 		#cell = tf.nn.rnn_cell.LSTMCell(state_size)#, state_is_tuple=True)
-		rnn_layers = [tf.nn.rnn_cell.conv2DLSTMCell(size) for size in range(state_size+1)]
+		#rnn_layers=[]
+		#for size in range(state_size+1):
+		#	rnn_layers.append(tf.contrib.rnn.ConvLSTMCell(2,input_size,1,kernel)#(1,input_size,12,W_convLSTM))
 		#cell = tf.nn.rnn_cell.DropoutWrapper(cell, output_keep_prob=0.5)
-		cell = tf.nn.rnn_cell.MultiRNNCell(rnn_layers)#[cell] * num_layers)#, state_is_tuple=True)
+		cell=tf.contrib.rnn.ConvLSTMCell(2,input_size,1,kernel)
+		#rnn_layers=[tf.contrib.rnn.ConvLSTMCell(2,input_size,1,kernel)(size) for size in range(state_size+1)]
+		cell =tf.nn.rnn_cell.MultiRNNCell([cell] * num_layers)#, state_is_tuple=True)
 		#states_series, current_state = tf.nn.dynamic_rnn(cell, tf.expand_dims(batchX_placeholder, -1), initial_state=rnn_tuple_state)
+		print input_size 
+		#cell=tf.contrib.rnn.ConvLSTMCell(2,input_size,1,kernel)#W_convLSTM)
 		states_series, current_state = tf.nn.dynamic_rnn(cell, x,time_major=True, dtype=x.dtype)#initial_state=init_state)
 		print states_series.get_shape().as_list()
-		states_series = tf.reshape(states_series, [-1, state_size])
+		print tf.convert_to_tensor(current_state).get_shape().as_list()
+		#states_series = tf.reshape(states_series, [-1, state_size])
 
 		logits = tf.matmul(states_series, W2_LSTM) + b2_LSTM #Broadcasted addition
 		labels = tf.reshape(batchY_placeholder, [-1])
@@ -263,7 +272,7 @@ def I2IFcLSTM(x, nfilters=32,  activation=tf.nn.relu, init='xavier', output_filt
 	#Nbatch = tf.shape(x)[0]
 	Nbatch=x.get_shape().as_list()[0]
 	if Nbatch is None:
-		Nbatch=1
+		Nbatch=5
 	truncated_backprop_length=x.get_shape().as_list()[1]
 	if truncated_backprop_length is None:
 		truncated_backprop_length=4
@@ -271,10 +280,10 @@ def I2IFcLSTM(x, nfilters=32,  activation=tf.nn.relu, init='xavier', output_filt
 	for i in range(truncated_backprop_length):
 		yclass,yhat, i2i_yclass, i2i_yhat =I2INetFC(x[:][i], nfilters=nfilters, activation=activation, init=init)
 		#reshape I2IFc output
-		#y_vec = tf.reshape(yhat, (Nbatch,CROP_DIMS**2))
+		y_vec = tf.reshape(yhat, (Nbatch,CROP_DIMS,CROP_DIMS,1))
 		#input_size=y_vec.get_shape().as_list()[0]
-        input_size=yhat.get_shape().as_list()
-		LSTM_input.append(yhat)
+        	input_size=[CROP_DIMS,CROP_DIMS,1]
+		LSTM_input.append(y_vec)
 	print input_size
 	print truncated_backprop_length
 	print Nbatch
