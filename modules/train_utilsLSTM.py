@@ -52,7 +52,7 @@ def random_rotate(image_pairList):
 class FileReaderThread(threading.Thread):
     """Note this class is a thread, so it runs in a separate thread parallel
     to the main program"""
-    def __init__(self, q, file_list, batch_ids, path_start, path_length, reader_fn, group=None, target=None, name="producer",
+    def __init__(self, q, file_list, batch_ids, path_start, path_length, num_batch, reader_fn, group=None, target=None, name="producer",
                  args=(), kwargs=None, verbose=None):
         super(FileReaderThread,self).__init__()
         self.target    = target
@@ -79,15 +79,14 @@ class FileReaderThread(threading.Thread):
                 self.num_batch=len(batchList)
         	itemList=[]
         	for iterator in range(len(batchList)):
-                    for it in range(path_length[batchList[iterator]]):
-                        itemList.append(self.reader_fn(self.file_list[path_start[batchList[iterator]]+it]))
+                    for it in range(self.path_length[batchList[iterator]]):
+                        itemList.append(self.reader_fn(self.file_list[self.path_start[batchList[iterator]]+it]))
                     self.q.put(itemList)
                 time.sleep(random.random())
         return
 
 class BatchGetter(object):
-    def __init__(self, preprocessor_fn, batch_processor_fn, num_batch,queue_size,file_list, batch_ids, path_start,path_length,
-    reader_fn,num_threads=1):
+    def __init__(self, preprocessor_fn, batch_processor_fn, num_batch, batch_ids, path_start, path_length, queue_size, file_list, reader_fn, num_threads=1):
         self.q                  = Queue.Queue(queue_size)
         self.preprocessor_fn    = preprocessor_fn
         self.batch_processor_fn = batch_processor_fn

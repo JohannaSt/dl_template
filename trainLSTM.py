@@ -1,7 +1,7 @@
 from modules import io
 from modules import layersLSTM as tf_util
 from modules import vascular_data as sv
-from modules import train_utils
+from modules import train_utilsLSTM as train_utils
 
 import os
 
@@ -108,8 +108,9 @@ def make_preprocessor(global_config, case_config):
     def preprocess(TupleList):
 	for i in range(len(TupleList)):
 		TupleList[i] = experiment.normalize(TupleList[i], case_config)
+	TupleList = experiment.augment(TupleList, global_config, case_config)
         return TupleList
-    TupleList = experiment.augment(TupleList, global_config, case_config)
+    
     return preprocess
 
 preprocessor    = make_preprocessor(global_config, case_config)
@@ -121,9 +122,7 @@ logger          = experiment.log
 ##########################
 # Setup queues and threads
 ##########################
-consumer = train_utils.BatchGetter(preprocessor,batch_processor,global_config['BATCH_SIZE'],
-queue_size=global_config['QUEUE_SIZE'], file_list=train_files, batchIDs=batch_ids, pathStart=path_start, pathLength=path_length,
-reader_fn=reader, num_threads=global_config['NUM_THREADS'])
+consumer = train_utils.BatchGetter(preprocessor,batch_processor,global_config['BATCH_SIZE'], batch_ids, path_start, path_length, global_config['QUEUE_SIZE'],train_files, reader, num_threads=global_config['NUM_THREADS'])
 
 ##############################
 # Train

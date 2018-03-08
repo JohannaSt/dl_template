@@ -204,7 +204,7 @@ def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_s
 	with tf.variable_scope(scope,reuse=reuse):
 		reuse=tf.AUTO_REUSE
 		batchX_placeholder = tf.placeholder(tf.float32, [batch_size, truncated_backprop_length]+input_size)
-		batchY_placeholder = tf.placeholder(tf.int32, [batch_size, truncated_backprop_length]+ input_size)
+		#batchY_placeholder = tf.placeholder(tf.int32, [batch_size, truncated_backprop_length]+ input_size)
 
 		init_state = tf.placeholder(tf.float32, [num_layers, 2, batch_size, state_size])
 
@@ -220,11 +220,11 @@ def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_s
 		W_convLSTM = tf.Variable(np.random.rand(kernel[0],kernel[1],1), name='W_convLSTM')
 		input_place=tf.placeholder(tf.float32,input_size)
 
-		W_LSTM = tf.Variable(np.random.rand(state_size+1, state_size), dtype=tf.float32)
-		b_LSTM = tf.Variable(np.zeros((1,state_size)), dtype=tf.float32)
+		W_LSTM = tf.Variable(np.random.rand(state_size+1, state_size))
+		b_LSTM = tf.Variable(np.zeros((1,state_size)))
 
-		W2_LSTM = tf.Variable(np.random.rand([input_size[0],input_size[1],input_size[2]], num_classes),dtype=tf.float32)
-		b2_LSTM = tf.Variable(np.zeros((1,num_classes)), dtype=tf.float32)
+		W2_LSTM = tf.Variable(np.random.rand(input_size[0],input_size[1],input_size[2], num_classes))
+		b2_LSTM = tf.Variable(np.zeros((1,num_classes)))
 
 		# create 2 LSTMCells Tensorflow example:
 		#rnn_layers = [tf.nn.rnn_cell.LSTMCell(size) for size in [128, 256]]
@@ -256,15 +256,16 @@ def LSTM(x,batch_size, truncated_backprop_length, num_layers, state_size,input_s
 		print states_series.get_shape().as_list()
 		print tf.convert_to_tensor(current_state).get_shape().as_list()
 		#states_series = tf.reshape(states_series, [-1, state_size])
-
-		logits = tf.matmul(states_series, W2_LSTM) + b2_LSTM #Broadcasted addition
+		'''		
+		logits=[]
+		for i in range(x.get_shape().as_list()[0]):
+			for j in range(x.get_shape().as_list()[1]):
+				logits[i][j] = tf.matmul(states_series[i][j][:][:][:], W2_LSTM) + b2_LSTM
+		#logits = tf.matmul(states_series, W2_LSTM) + b2_LSTM #Broadcasted addition
 		labels = tf.reshape(batchY_placeholder, [-1])
 		#labels = tf.reshape(y, [-1])
-
-		logits_series = tf.unstack(tf.reshape(logits, [ truncated_backprop_length,batch_size, 2]), axis=1)
-		predictions_series = [tf.nn.softmax(logit) for logit in logits_series]
-
-	return predictions_series, logits_series, labels, logits
+		'''
+	return states_series, current_state
 
 def I2IFcLSTM(x, nfilters=32,  activation=tf.nn.relu, init='xavier', output_filters=1, batch_size=4,num_layers=3,state_size=100):
 	#prepare and reshape input
@@ -289,9 +290,12 @@ def I2IFcLSTM(x, nfilters=32,  activation=tf.nn.relu, init='xavier', output_filt
 	print Nbatch
 	print tf.convert_to_tensor(LSTM_input).get_shape().as_list()
 	#LSTM
-	predictions_series, logits_series, labels,logits=LSTM(tf.convert_to_tensor(LSTM_input),Nbatch, truncated_backprop_length, num_layers, state_size, input_size, num_classes=2, scope='lstm',reuse=False)
+	predictions_series, current_state=LSTM(tf.convert_to_tensor(LSTM_input),Nbatch, truncated_backprop_length, num_layers, state_size, input_size, num_classes=2, scope='lstm',reuse=False)
+	#state_series_perBatch = tf.unstack(state_series, axis=1)
+	#predictions_series = [tf.nn.softmax(logit) for logit in logits_series]
+	y_output_series = tf.sigmoid(predictions_series)
 
-	return predictions_series, logits_series, labels, logits
+	return y_output_series, predictions_series, current_state
 
 def multitaskNet(x, nfilters=32, init='xavier', activation=tf.nn.relu, output_filters=1,
     hidden_size=300,num_contour_points=20):

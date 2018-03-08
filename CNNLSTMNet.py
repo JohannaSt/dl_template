@@ -102,18 +102,18 @@ class Model(object):
         #        tf.nn.sigmoid_cross_entropy_with_logits(logits=self.i2i_yhat,labels=self.y))
 
     	#I2IFcLSTM
-    	self.yclass_series,self.yhat_series, self.yclass, self.yhat =\
+    	self.yclass_series,self.yhat_series, self.current_state_series =\
           tf_util.I2IFcLSTM(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
-    	self.losses = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=self.yhat, labels=self.yclass)
+    	self.losses = tf.nn.softmax_cross_entropy_with_logits(logits=self.yhat_series, labels=self.y)
     	self.loss = tf.reduce_mean(self.losses)
-
+	
 
 
 
         #self.loss = tf.reduce_mean(
          #      tf.nn.sigmoid_cross_entropy_with_logits(logits=self.yhat,labels=self.y))
 
-        self.loss = self.loss + tf_util.l2_reg(LAMBDA)
+       # self.loss = self.loss + tf_util.l2_reg(LAMBDA)
 
         self.saver = tf.train.Saver()
 
