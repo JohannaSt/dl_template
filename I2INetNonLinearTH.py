@@ -84,11 +84,11 @@ class Model(object):
         self.y = tf.placeholder(shape=[None,CROP_DIMS,CROP_DIMS,C],dtype=tf.float32)
 
         #I2INetFC
-        #self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
-        #   tf_util.I2INetFC(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
+        self.yclass,self.yhat, self.i2i_yclass, self.i2i_yhat =\
+           tf_util.I2INetFC(self.x, nfilters=NUM_FILTERS, activation=leaky_relu, init=INIT)
 
-        self.yclass,self.yhat,_,_ = tf_util.I2INet(self.x,nfilters=NUM_FILTERS,
-            activation=leaky_relu,init=INIT)
+        #self.yclass,self.yhat,_,_ = tf_util.I2INet(self.x,nfilters=NUM_FILTERS,
+        #    activation=leaky_relu,init=INIT)
 
         #Loss
         # self.loss = tf.reduce_mean(

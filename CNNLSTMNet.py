@@ -49,9 +49,9 @@ class Model(object):
         #if np.sum(np.isnan(yb)) > 0: return
 	
 	xb=train_tupleListList[:][:][0]
-	xb=train_tupleListList[:][:][1]
+	yb=train_tupleListList[:][:][1]
 	print 'here'
-	print shape(xb)
+	print len(xb)
         self.sess.run(self.train,{self.x:xb,self.y:yb})
 	
 
@@ -139,6 +139,8 @@ def read_file(filename):
 
 def normalize(Tuple, case_config):
     y = Tuple[1]
+    print 'y'
+    print y.shape
     y = (1.0*y-np.amin(y))/(np.amax(y)-np.amin(y)+1e-5)
     y = np.round(y).astype(int)
 
@@ -162,10 +164,10 @@ def normalize(Tuple, case_config):
 
     return (x,y)
 
-def augment(Tuple, global_config, case_config):
+def augment(Tuple, global_config, case_config, angle):
     Tuple_ = (Tuple[0],Tuple[1])
     if case_config['ROTATE']:
-        Tuple_ = train_utilsLSTM.random_rotate(Tuple_)
+        Tuple_ = train_utilsLSTM.random_rotate(Tuple_,angle)
 
     if case_config['RANDOM_CROP']:
         Tuple_ = train_utilsLSTM.random_crop(Tuple_,case_config['PATH_PERTURB'],
@@ -176,7 +178,10 @@ def augment(Tuple, global_config, case_config):
     return (x,y)
 
 def tuple_to_batch(tuple_list):
-
+    print 'tuple_list'
+    print len(tuple_list)
+    print len(tuple_list[0])
+    print len(tuple_list[0][0])
     if type(tuple_list) == list and len(tuple_list) == 1:
         tuple_list = tuple_list[0]
     if type(tuple_list) == tuple:
@@ -186,7 +191,8 @@ def tuple_to_batch(tuple_list):
         y = y[np.newaxis,:,:,np.newaxis]
         return x,y
     else:
-        x = np.stack([pair[0] for pair in tuple_list])
+	for i in range(len(tuple_list)):
+        	x = np.stack(tuple_list[i])
         x = x[:,:,:,np.newaxis]
 
         y = np.stack([pair[1] for pair in tuple_list])

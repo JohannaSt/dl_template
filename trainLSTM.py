@@ -66,6 +66,7 @@ while globalCounter<(len(train_paths)-1):
 ["/".join(f) for f in train_paths]
 #batch_ids is a list of lists of the position in the path_lenght and path_start list of all paths of the same lenght
 #the position in the batch_ids list indicates the paths lenght
+#if no ist of that leng exist, the list has an empty entry
 batch_ids= [ [] for i in range(maxCount) ]
 for i in range(len(path_length)):
 	batch_ids[(path_length[i])].append(i)
@@ -106,9 +107,10 @@ reader = experiment.read_file
 def make_preprocessor(global_config, case_config):
     print "make preprocessor"
     def preprocess(TupleList):
+	angle = np.random.randint(360)
 	for i in range(len(TupleList)):
 		TupleList[i] = experiment.normalize(TupleList[i], case_config)
-	TupleList = experiment.augment(TupleList, global_config, case_config)
+		TupleList[i] = experiment.augment(TupleList[i], global_config, case_config, angle)
         return TupleList
     
     return preprocess

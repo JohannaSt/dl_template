@@ -38,16 +38,25 @@ def random_crop(image_pair,max_offset,crop_dims):
             im[startsx:startsx+crop_dims,startsy:startsy+crop_dims])
 
     return tuple(return_images)
-
+'''
 def random_rotate(image_pairList):
     angle = np.random.randint(360)
     return_imagesList =[]
     for count in range(len(image_pairList)):
         return_images = []
+	print 'image pair:'
+	print count
         for i,im in enumerate(image_pairList[count]):
             return_images.append(rotate(im,angle,axes=(1,0),reshape=False))
         return_imagesList.append(return_images)
     return tuple(return_imagesList)
+'''
+def random_rotate(image_pair, angle):
+    return_images = []
+    for i,im in enumerate(image_pair):
+        return_images.append(rotate(im,angle,axes=(1,0),reshape=False))
+
+    return tuple(return_images)
 
 class FileReaderThread(threading.Thread):
     """Note this class is a thread, so it runs in a separate thread parallel
@@ -80,7 +89,8 @@ class FileReaderThread(threading.Thread):
         	itemList=[]
         	for iterator in range(len(batchList)):
                     for it in range(self.path_length[batchList[iterator]]):
-                        itemList.append(self.reader_fn(self.file_list[self.path_start[batchList[iterator]]+it]))
+                        fileInput=np.array(self.reader_fn(self.file_list[self.path_start[batchList[iterator]]+it]))
+			itemList.append(fileInput)
                     self.q.put(itemList)
                 time.sleep(random.random())
         return
@@ -109,7 +119,9 @@ class BatchGetter(object):
         items = []
         while len(items) < self.num_batch:
             item_ = self.q.get()
+	    #print item_
             item_ = self.preprocessor_fn(item_)
             items.append(item_)
             #returns a list of lists of image tuples along a vessec path of the same length
         return self.batch_processor_fn(items)
+	#return items
